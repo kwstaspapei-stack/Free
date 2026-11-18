@@ -1,0 +1,2592 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trading Journal">
+<meta name="theme-color" content="#0d1520">
+<title>Trading Journal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: #0d1520;
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 72px;
+  }
+  .mono { font-family: 'Courier New', monospace; }
+  .header {
+    background: linear-gradient(135deg, #0d1520, #0f1e30);
+    padding: 52px 20px 16px;
+    border-bottom: 1px solid #1e2a3a;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .header-eyebrow { font-size: 11px; color: #64748b; letter-spacing: 3px; text-transform: uppercase; }
+  .header-title { font-size: 20px; font-weight: 700; color: #f1f5f9; margin-top: 2px; }
+  .nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: #0a1018; border-top: 1px solid #1e2a3a;
+    display: flex; z-index: 100;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    flex: 0 0 auto; min-width: 62px; padding: 9px 6px 11px;
+    background: none; border: none;
+    color: #475569; font-size: 8.5px; font-weight: 400;
+    cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; gap: 2px; transition: color 0.2s;
+    white-space: nowrap;
+  }
+  .nav-btn.active { color: #f59e0b; font-weight: 700; }
+  .nav-icon { font-size: 19px; }
+  .card {
+    background: #111c2b; border: 1px solid #1e2a3a;
+    border-radius: 14px; padding: 16px; margin: 12px 16px;
+  }
+  .card-sm { margin: 6px 16px; padding: 12px 14px; }
+  .label {
+    font-size: 10px; color: #64748b;
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 8px; display: block;
+  }
+  .section-title {
+    font-size: 11px; color: #64748b;
+    letter-spacing: 2px; text-transform: uppercase;
+    padding: 16px 16px 4px;
+  }
+  .big-num { font-family: 'Courier New', monospace; font-size: 30px; font-weight: 700; }
+  .pos { color: #10b981; }
+  .neg { color: #ef4444; }
+  .neu { color: #94a3b8; }
+  .gold { color: #f59e0b; }
+  .blue { color: #3b82f6; }
+  input[type=text], input[type=number], input[type=date], input[type=month] {
+    background: #0d1520; border: 1px solid #1e2a3a;
+    border-radius: 10px; color: #f1f5f9;
+    padding: 12px 14px; font-size: 16px;
+    width: 100%; outline: none;
+    font-family: 'Courier New', monospace;
+    -webkit-appearance: none;
+  }
+  input:focus { border-color: #f59e0b; }
+  .btn-gold {
+    background: #f59e0b; border: none; border-radius: 10px;
+    color: #0d1520; padding: 13px 20px;
+    font-size: 15px; font-weight: 700; cursor: pointer; width: 100%;
+  }
+  .btn-ghost {
+    background: #1e2a3a; border: 1px solid #334155;
+    color: #94a3b8; border-radius: 8px;
+    padding: 8px 16px; cursor: pointer; font-size: 13px;
+  }
+  .btn-del {
+    background: none; border: none; color: #475569;
+    cursor: pointer; font-size: 20px; padding: 4px 8px;
+  }
+  .ring-wrap { text-align: center; }
+  svg.ring { display: block; margin: 0 auto; }
+  .two-col { display: flex; gap: 12px; margin: 0 16px; }
+  .two-col .card { flex: 1; margin: 0; text-align: center; }
+  .alloc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .alloc-bar-bg { background: #1e2a3a; border-radius: 4px; height: 4px; margin-top: 4px; overflow: hidden; }
+  .alloc-bar { height: 100%; border-radius: 4px; transition: width 0.4s; }
+  .month-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 10px; margin-bottom: 10px;
+    border-bottom: 1px solid #1e2a3a;
+  }
+  .month-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .entry-row { display: flex; align-items: center; gap: 10px; }
+  .tag { display: inline-block; border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+  .stat-row {
+    display: flex; justify-content: space-between;
+    padding-bottom: 10px; margin-bottom: 10px;
+    border-bottom: 1px solid #1e2a3a;
+  }
+  .stat-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  input[type=range] { width: 100%; accent-color: #f59e0b; height: 20px; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .toast {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+    background: #10b981; color: #fff; border-radius: 10px;
+    padding: 10px 20px; font-size: 14px; font-weight: 600;
+    z-index: 200; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 150;
+    align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #111c2b; border: 1px solid #1e2a3a;
+    border-radius: 20px 20px 0 0; padding: 24px 20px 40px;
+    width: 100%; max-width: 480px;
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 16px; color: #f1f5f9; }
+  .modal input { margin-bottom: 12px; }
+  .warn { color: #ef4444; font-size: 12px; margin-top: 8px; }
+  .info { color: #64748b; font-size: 12px; margin-top: 6px; }
+
+  /* ALLOC EDIT ROW */
+  .alloc-edit-row {
+    background: #0d1520; border: 1px solid #1e2a3a;
+    border-radius: 12px; padding: 12px; margin-bottom: 10px;
+  }
+  .alloc-edit-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .alloc-pct-input {
+    background: #1e2a3a; border: 1px solid #334155;
+    border-radius: 8px; color: #f1f5f9;
+    padding: 6px 10px; font-size: 18px; font-weight: 700;
+    width: 72px; text-align: center; outline: none;
+    font-family: 'Courier New', monospace;
+  }
+  .alloc-pct-input:focus { border-color: #f59e0b; }
+  .emoji-btn {
+    background: #1e2a3a; border: 1px solid #334155;
+    border-radius: 8px; font-size: 20px; padding: 6px 10px;
+    cursor: pointer;
+  }
+  .btn-add-alloc {
+    background: #1e2a3a; border: 2px dashed #334155;
+    border-radius: 12px; color: #64748b;
+    font-size: 14px; font-weight: 600;
+    padding: 12px; width: 100%; cursor: pointer;
+    margin-top: 4px;
+  }
+  .btn-add-alloc:hover { border-color: #f59e0b; color: #f59e0b; }
+  .color-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+  }
+
+  /* IMAGE / GALLERY */
+  .img-upload-box {
+    background: #0d1520; border: 2px dashed #334155;
+    border-radius: 10px; padding: 14px; text-align: center;
+    color: #64748b; font-size: 13px; cursor: pointer;
+    margin-bottom: 14px;
+  }
+  .img-upload-box:hover { border-color: #f59e0b; color: #f59e0b; }
+  .img-preview-thumb {
+    width: 100%; max-height: 160px; object-fit: cover;
+    border-radius: 8px; margin-top: 10px; display: block;
+  }
+  .entry-thumb {
+    width: 42px; height: 42px; object-fit: cover;
+    border-radius: 8px; cursor: pointer; flex-shrink: 0;
+    border: 1px solid #1e2a3a;
+  }
+  .cam-badge {
+    width: 42px; height: 42px; border-radius: 8px;
+    background: #1e2a3a; display: flex; align-items: center;
+    justify-content: center; font-size: 18px; flex-shrink: 0;
+    cursor: pointer; border: 1px solid #334155;
+  }
+  .result-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+  .result-btn {
+    flex: 1; padding: 10px; border-radius: 10px; cursor: pointer;
+    font-size: 13px; font-weight: 600; border: 1px solid #1e2a3a;
+    background: #0d1520; color: #64748b; text-align: center;
+  }
+  .result-btn.sel-win  { background: #10b98122; color: #10b981; border-color: #10b981; }
+  .result-btn.sel-loss { background: #ef444422; color: #ef4444; border-color: #ef4444; }
+  .gallery-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 6px; padding: 0 16px;
+  }
+  .gallery-item {
+    position: relative; aspect-ratio: 1;
+    border-radius: 10px; overflow: hidden; cursor: pointer;
+    border: 1px solid #1e2a3a;
+  }
+  .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+  .gallery-item .gi-tag {
+    position: absolute; top: 4px; right: 4px;
+    font-size: 10px; padding: 1px 6px; border-radius: 5px;
+    font-weight: 700;
+  }
+  .gallery-item .gi-amt {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    font-size: 11px; padding: 3px 5px; font-weight: 700;
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    color: #fff;
+  }
+  .img-viewer {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.92); z-index: 300;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .img-viewer.open { display: flex; }
+  .img-viewer img { max-width: 100%; max-height: 78vh; border-radius: 10px; }
+  .img-viewer .iv-info { color: #e2e8f0; margin-top: 14px; text-align: center; font-size: 14px; }
+  .img-viewer .iv-close {
+    position: absolute; top: 40px; right: 20px;
+    background: #1e2a3a; border: none; color: #fff;
+    width: 40px; height: 40px; border-radius: 50%;
+    font-size: 22px; cursor: pointer;
+  }
+  .gallery-empty { text-align: center; color: #475569; font-size: 14px; padding: 40px 16px; }
+
+  /* ENTRY TYPE TOGGLE */
+  .type-toggle { display: flex; gap: 6px; }
+  .type-btn {
+    flex: 1; padding: 9px 4px; border-radius: 10px; cursor: pointer;
+    font-size: 12px; font-weight: 600; border: 1px solid #1e2a3a;
+    background: #0d1520; color: #64748b; text-align: center;
+    transition: all 0.15s;
+  }
+  .type-btn.sel { background: #f59e0b22; color: #f59e0b; border-color: #f59e0b; }
+
+  /* GOALS (waterfall) */
+  .goal-card {
+    background: #111c2b; border: 1px solid #1e2a3a;
+    border-radius: 14px; padding: 16px; margin: 12px 16px;
+  }
+  .goal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .goal-emoji { font-size: 24px; }
+  .goal-title { flex: 1; font-size: 15px; font-weight: 700; color: #f1f5f9; }
+  .goal-pct { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 700; }
+  .goal-bar-bg { background: #0d1520; border-radius: 6px; height: 12px; overflow: hidden; border: 1px solid #1e2a3a; }
+  .goal-bar { height: 100%; border-radius: 6px; transition: width 0.5s ease; }
+  .goal-nums {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: #64748b; margin-top: 6px; font-family: 'Courier New', monospace;
+  }
+  .goal-done-badge {
+    font-size: 11px; font-weight: 700; padding: 2px 8px;
+    border-radius: 6px; background: #10b98122; color: #10b981;
+  }
+  .goal-status-summary {
+    text-align: center; padding: 4px 16px 0; color: #64748b; font-size: 13px;
+  }
+
+  /* TEXTAREA */
+  textarea {
+    background: #0d1520; border: 1px solid #1e2a3a; border-radius: 10px;
+    padding: 12px; color: #e2e8f0; font-size: 15px; font-family: inherit;
+    outline: none; box-sizing: border-box;
+  }
+  textarea:focus { border-color: #f59e0b; }
+
+  /* RULES */
+  .rule-card {
+    background: #111c2b; border: 1px solid #1e2a3a;
+    border-left: 3px solid #f59e0b;
+    border-radius: 12px; padding: 14px 16px; margin: 8px 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .rule-num {
+    font-family: 'Courier New', monospace; font-weight: 700;
+    font-size: 15px; color: #f59e0b; flex-shrink: 0;
+    min-width: 22px;
+  }
+  .rule-body { flex: 1; }
+  .rule-text {
+    font-size: 15px; line-height: 1.5; color: #f1f5f9;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .rule-thumb {
+    width: 100%; max-height: 200px; object-fit: cover;
+    border-radius: 8px; margin-top: 10px; cursor: pointer;
+    border: 1px solid #1e2a3a; display: block;
+  }
+  .rule-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .rule-btn {
+    background: #1e2a3a; border: none; color: #94a3b8;
+    width: 30px; height: 30px; border-radius: 8px;
+    cursor: pointer; font-size: 14px; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .rule-btn:hover { background: #2d3d52; color: #fff; }
+  .rules-empty { text-align: center; color: #475569; font-size: 14px; padding: 30px 16px; }
+
+  /* CHECKLIST */
+  .check-item {
+    display: flex; align-items: center; gap: 12px;
+    background: #111c2b; border: 1px solid #1e2a3a;
+    border-radius: 12px; padding: 14px 16px; margin: 8px 16px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .check-item.checked {
+    background: #10b98118; border-color: #10b981;
+  }
+  .check-box {
+    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+    border: 2px solid #334155; display: flex; align-items: center;
+    justify-content: center; font-size: 16px; color: #fff;
+    transition: all 0.2s;
+  }
+  .check-item.checked .check-box {
+    background: #10b981; border-color: #10b981;
+  }
+  .check-text {
+    flex: 1; font-size: 15px; color: #e2e8f0; transition: color 0.2s;
+  }
+  .check-item.checked .check-text {
+    color: #10b981; font-weight: 600;
+  }
+  .check-del {
+    background: none; border: none; color: #475569;
+    font-size: 18px; cursor: pointer; flex-shrink: 0; padding: 4px;
+  }
+  .check-del:hover { color: #ef4444; }
+  .check-banner {
+    margin: 12px 16px; padding: 18px; border-radius: 14px;
+    text-align: center; font-size: 18px; font-weight: 700;
+  }
+  .check-banner.go {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff; box-shadow: 0 4px 20px #10b98155;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .check-banner.wait {
+    background: #1e2a3a; color: #94a3b8; font-size: 15px; font-weight: 600;
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+  .check-progress {
+    font-size: 13px; color: #64748b; margin-top: 4px; font-weight: 400;
+  }
+
+  /* WEALTH */
+  .asset-card {
+    background:#111c2b; border:1px solid #1e2a3a; border-radius:14px;
+    padding:14px 16px; margin:10px 16px; cursor:pointer;
+  }
+  .asset-head { display:flex; align-items:center; gap:10px; }
+  .asset-emoji { font-size:24px; width:30px; text-align:center; }
+  .asset-name { font-size:15px; font-weight:700; color:#f1f5f9; }
+  .asset-sub { font-size:12px; color:#64748b; margin-top:2px; }
+  .asset-val { text-align:right; }
+  .asset-goal { margin-top:12px; }
+  .src-live { color:#10b981; }
+  .src-manual { color:#f59e0b; }
+  .src-none { color:#ef4444; }
+  .day-chip { display:inline-block; font-family:'Courier New',monospace; font-size:12px; font-weight:700; padding:2px 8px; border-radius:6px; }
+  .day-chip.up { color:#10b981; background:#10b98118; }
+  .day-chip.down { color:#ef4444; background:#ef444418; }
+  .day-chip.flat { color:#94a3b8; background:#1e2a3a; }
+  .alloc-stack { display:flex; height:10px; border-radius:5px; overflow:hidden; background:#1e2a3a; margin-bottom:14px; }
+  .alloc-stack div { height:100%; }
+  .wtable { width:100%; border-collapse:collapse; font-size:13px; }
+  .wtable th { font-size:10px; color:#64748b; letter-spacing:1px; text-transform:uppercase; font-weight:600; text-align:right; padding:0 6px 8px; white-space:nowrap; }
+  .wtable th:first-child, .wtable td:first-child { text-align:left; padding-left:0; }
+  .wtable td { padding:8px 6px; border-top:1px solid #1e2a3a; text-align:right; white-space:nowrap; vertical-align:top; }
+  .wtable td:last-child, .wtable th:last-child { padding-right:0; }
+  .wtable tr.tot td { border-top:1px solid #334155; font-weight:700; }
+  .wtable .mono { font-family:'Courier New',monospace; }
+  .wtable .d { font-size:11px; font-family:'Courier New',monospace; }
+  .wcats td:first-child { white-space:normal; }
+  .wcats th, .wcats td { padding-left:4px; padding-right:4px; }
+  .wcats td { font-size:12px; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .wscroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .wscroll .wtable td:first-child, .wscroll .wtable th:first-child { position:sticky; left:0; background:#111c2b; padding-right:10px; }
+  .eur-sub { font-size:11px; color:#64748b; font-family:'Courier New',monospace; font-weight:400; margin-top:2px; }
+  .src-toggle { display:flex; justify-content:space-between; align-items:center; background:#111c2b; border:1px solid #1e2a3a; border-radius:14px; padding:14px 16px; margin:12px 16px; cursor:pointer; font-size:15px; font-weight:700; color:#f1f5f9; }
+  .src-toggle .arr { color:#64748b; transition:transform 0.2s; }
+  .src-toggle.open .arr { transform:rotate(180deg); }
+  .fx-in { font-size:22px !important; font-weight:700; padding:14px 50px 14px 14px !important; }
+  .fx-field { position:relative; margin-bottom:6px; }
+  .fx-field .cur { position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:18px; font-weight:700; color:#64748b; pointer-events:none; }
+  .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat-tile { background:#0d1520; border:1px solid #1e2a3a; border-radius:10px; padding:10px 12px; }
+  .stat-tile .k { font-size:10px; color:#64748b; letter-spacing:1px; text-transform:uppercase; }
+  .stat-tile .v { font-family:'Courier New',monospace; font-size:15px; font-weight:700; color:#f1f5f9; margin-top:4px; }
+  .stat-tile .s { font-size:11px; color:#64748b; margin-top:2px; }
+  /* TAB ORDER */
+  .tab-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #1e2a3a; }
+  .tab-row:last-child { border-bottom:none; }
+  .tab-row.hidden-tab { opacity:0.45; }
+  .mini-btn {
+    background:#1e2a3a; border:none; color:#94a3b8;
+    width:36px; height:36px; border-radius:8px; font-size:15px; cursor:pointer;
+  }
+  .mini-btn:disabled { opacity:0.3; cursor:default; }
+  .entry-edit {
+    background:none; border:none; color:#475569; cursor:pointer; font-size:15px; padding:4px 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">TRADING JOURNAL</div>
+  <div class="header-title" id="viewTitle">Επισκόπηση</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- DASHBOARD -->
+<div class="view active" id="view-dashboard">
+  <div class="card ring-wrap">
+    <span class="label">ΣΤΟΧΟΣ <span id="currentYear"></span></span>
+    <svg class="ring" width="150" height="150">
+      <circle cx="75" cy="75" r="60" fill="none" stroke="#1e2a3a" stroke-width="12"/>
+      <circle cx="75" cy="75" r="60" fill="none" stroke="#f59e0b" stroke-width="12"
+        stroke-dasharray="376.99" stroke-dashoffset="376.99" stroke-linecap="round"
+        transform="rotate(-90 75 75)" id="ringCircle" style="transition:stroke-dashoffset 0.6s ease"/>
+    </svg>
+    <div style="margin-top:-120px; height:120px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; z-index:1;">
+      <div class="mono" style="font-size:22px;font-weight:700;" id="ringPct">0.0%</div>
+      <div style="font-size:10px;color:#64748b;">ολοκλήρωση</div>
+    </div>
+    <div style="margin-top:8px; text-align:center;">
+      <div class="big-num neu" id="totalPnL">$0,00</div>
+      <div class="eur-sub" id="totalPnLEur"></div>
+      <div style="color:#64748b;font-size:13px;margin-top:4px;">
+        στόχος <span class="mono gold" id="goalDisplay">€0,00</span>
+        &nbsp;·&nbsp; υπολείπεται <span class="mono neu" id="remainingGoal">€0,00</span>
+      </div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <span class="label">ΣΗΜΕΡΑ</span>
+      <div class="mono" style="font-size:20px;font-weight:700;" id="todayPnL">$0,00</div>
+      <div class="eur-sub" id="todayPnLEur"></div>
+    </div>
+    <div class="card">
+      <span class="label">ΜΗΝΑΣ</span>
+      <div class="mono" style="font-size:20px;font-weight:700;" id="monthPnL">$0,00</div>
+      <div class="eur-sub" id="monthPnLEur"></div>
+    </div>
+  </div>
+
+  <div class="section-title">ΦΟΡΟΣ & ΜΕΤΡΗΤΑ</div>
+  <div class="card">
+    <div class="stat-row">
+      <span style="color:#64748b;font-size:13px;">🏛️ Φόρος (15% στα κέρδη)</span>
+      <span class="mono" style="font-weight:700;font-size:15px;color:#ef4444;;text-align:right;" id="taxDue">$0,00</span>
+    </div>
+    <div class="stat-row">
+      <span style="color:#64748b;font-size:13px;">💵 Μετρητά άκρη</span>
+      <span class="mono" style="font-weight:700;font-size:15px;color:#3b82f6;;text-align:right;" id="cashHold">$0,00</span>
+    </div>
+    <div class="stat-row">
+      <span style="color:#64748b;font-size:13px;">💸 Μετρητά αγύριστα</span>
+      <span class="mono" style="font-weight:700;font-size:15px;color:#f59e0b;;text-align:right;" id="cashTravel">$0,00</span>
+    </div>
+    <div class="stat-row">
+      <span style="color:#64748b;font-size:13px;">📥 Καταθέσεις από τσέπη</span>
+      <span class="mono" style="font-weight:700;font-size:15px;color:#8b5cf6;text-align:right;" id="depositTotal">$0,00</span>
+    </div>
+    <div class="stat-row">
+      <span style="color:#64748b;font-size:13px;">🏦 Μέσα στον λογαριασμό</span>
+      <span class="mono" style="font-weight:700;font-size:15px;color:#10b981;;text-align:right;" id="inAccount">$0,00</span>
+    </div>
+  </div>
+  <div id="allocSection" style="display:none;">
+    <div class="section-title">ΚΑΤΑΝΟΜΗ ΚΕΡΔΩΝ</div>
+    <div class="card" id="allocDisplay"></div>
+  </div>
+  <div id="monthsSection" style="display:none;">
+    <div class="section-title">ΑΝΑ ΜΗΝΑ</div>
+    <div class="card" id="monthsDisplay"></div>
+  </div>
+</div>
+
+<!-- LOG -->
+<div class="view" id="view-log">
+  <div class="card">
+    <span class="label">ΝΕΑ ΕΓΓΡΑΦΗ</span>
+
+    <div class="type-toggle" style="margin-bottom:12px;">
+      <button class="type-btn sel" id="typeBtn-trade" onclick="selectEntryType('trade')">📈 Trade</button>
+      <button class="type-btn" id="typeBtn-cash_travel" onclick="selectEntryType('cash_travel')">💸 Αγύριστα</button>
+      <button class="type-btn" id="typeBtn-cash_hold" onclick="selectEntryType('cash_hold')">💵 Άκρη</button>
+      <button class="type-btn" id="typeBtn-deposit" onclick="selectEntryType('deposit')">📥 Κατάθεση</button>
+    </div>
+    <div class="info" id="typeHint" style="margin-bottom:12px;margin-top:0;">Κέρδος ή ζημιά από trading.</div>
+
+    <div style="margin-bottom:10px;"><input type="date" id="inputDate"></div>
+    <div style="margin-bottom:10px;"><input type="number" id="inputAmount" step="0.01" placeholder="Ποσό π.χ. 250 ή -80"></div>
+    <div style="margin-bottom:14px;"><input type="text" id="inputNote" placeholder="Σημείωση (προαιρετικά)"></div>
+
+    <span class="label">SCREENSHOT (προαιρετικά)</span>
+    <div class="img-upload-box" id="imgUploadBox" onclick="document.getElementById('imgFileInput').click()">
+      📷 Πάτα για να ανεβάσεις εικόνα από το chart
+    </div>
+    <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="handleImgPick(event)">
+    <img id="imgPreview" class="img-preview-thumb" style="display:none">
+
+    <button class="btn-gold" onclick="addEntry()">+ Καταχώρηση</button>
+  </div>
+  <div class="section-title">ΙΣΤΟΡΙΚΟ</div>
+  <div id="entriesList"></div>
+</div>
+
+<!-- GALLERY -->
+<div class="view" id="view-gallery">
+  <div class="section-title">ΒΙΒΛΙΟΘΗΚΗ SCREENSHOTS</div>
+  <div id="galleryGrid" class="gallery-grid"></div>
+</div>
+
+<!-- GOALS -->
+<div class="view" id="view-goals">
+  <div class="goal-status-summary" id="goalsSummary"></div>
+  <div id="goalsList"></div>
+  <div style="margin:12px 16px;">
+    <button class="btn-add-alloc" onclick="openAddGoal()">+ Νέος στόχος</button>
+  </div>
+</div>
+
+<!-- FORECAST -->
+<div class="view" id="view-forecast">
+  <div class="section-title">ΜΕΣΟΙ ΟΡΟΙ</div>
+  <div class="card" id="forecastAverages"></div>
+
+  <div class="section-title">ΠΡΟΒΛΕΨΗ ΜΕΧΡΙ ΗΜΕΡΟΜΗΝΙΑ</div>
+  <div class="card">
+    <span class="label">Διάλεξε ημερομηνία-στόχο</span>
+    <input type="date" id="forecastDate" onchange="renderForecast()">
+    <div id="forecastResult" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="info" style="text-align:center;padding:0 16px;">
+    Οι προβλέψεις βασίζονται στον ιστορικό σου ρυθμό και είναι ενδεικτικές — το trading δεν είναι γραμμικό.
+  </div>
+</div>
+
+<!-- RULES -->
+<div class="view" id="view-rules">
+  <div class="card">
+    <span class="label">ΝΕΟΣ ΚΑΝΟΝΑΣ</span>
+    <textarea id="ruleInput" rows="3" placeholder="Γράψε τον κανόνα σου εδώ…" style="width:100%;resize:vertical;"></textarea>
+
+    <div class="img-upload-box" id="ruleImgBox" style="margin-top:12px;" onclick="document.getElementById('ruleImgInput').click()">
+      📷 Πρόσθεσε εικόνα (προαιρετικά)
+    </div>
+    <input type="file" id="ruleImgInput" accept="image/*" style="display:none" onchange="handleRuleImgPick(event)">
+    <img id="ruleImgPreview" class="img-preview-thumb" style="display:none">
+
+    <button class="btn-gold" style="margin-top:12px;" onclick="addRule()">+ Προσθήκη κανόνα</button>
+  </div>
+  <div class="section-title">ΟΙ ΚΑΝΟΝΕΣ ΜΟΥ</div>
+  <div id="rulesList"></div>
+</div>
+
+<!-- CHECKLIST -->
+<div class="view" id="view-checklist">
+  <div class="card">
+    <span class="label">ΝΕΟ ΚΡΙΤΗΡΙΟ</span>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="checkInput" placeholder="π.χ. Έγινε SSMT" style="flex:1;" onkeydown="if(event.key==='Enter')addCheck()">
+      <button class="btn-gold" style="width:auto;padding:0 18px;" onclick="addCheck()">+</button>
+    </div>
+  </div>
+
+  <div id="checklistBanner"></div>
+
+  <div id="checklistList"></div>
+
+  <div style="margin:14px 16px;">
+    <button class="btn-ghost" style="width:100%;" onclick="resetChecklist()">🔄 Καθαρισμός (νέο trade)</button>
+  </div>
+</div>
+
+<!-- WEALTH -->
+<div class="view" id="view-wealth">
+  <div class="card" style="text-align:center;">
+    <span class="label">ΣΥΝΟΛΙΚΗ ΠΕΡΙΟΥΣΙΑ</span>
+    <div class="big-num gold" id="wealthTotal">€0,00</div>
+    <div id="wealthDay" style="margin-top:8px;"></div>
+    <div class="info" id="wealthDelta"></div>
+    <div class="info" id="wealthPrices" style="margin-top:10px;"></div>
+    <button class="btn-ghost" style="margin-top:10px;" onclick="fetchPrices(true)">🔄 Ανανέωση τιμών</button>
+  </div>
+  <div class="src-toggle" id="srcToggle" onclick="toggleSources()">
+    <span>💼 Πηγές <span id="srcCount" style="color:#64748b;font-weight:400;"></span></span>
+    <span class="arr">▾</span>
+  </div>
+  <div id="srcBody" style="display:none;">
+    <div id="wealthAssets"></div>
+    <div style="margin:12px 16px;">
+      <button class="btn-add-alloc" onclick="openAddAsset()">+ Νέα πηγή</button>
+    </div>
+  </div>
+  <div class="section-title">ΚΑΤΑΝΟΜΗ ΑΝΑ ΠΗΓΗ</div>
+  <div class="card" id="wealthCats"></div>
+  <div id="wealthMonthsSection" style="display:none;">
+    <div class="section-title">ΑΥΞΗΣΗ ΑΝΑ ΜΗΝΑ</div>
+    <div class="card"><div class="wscroll" id="wealthMonths"></div></div>
+  </div>
+  <div id="wealthStatsSection" style="display:none;">
+    <div class="section-title">ΣΤΑΤΙΣΤΙΚΑ</div>
+    <div class="card" id="wealthStats"></div>
+  </div>
+  <div class="info" style="text-align:center;padding:0 16px 16px;">
+    Οι τιμές BTC & χρυσού έρχονται live όταν έχεις internet. Το «σήμερα» για BTC/χρυσό είναι η μεταβολή 24ώρου· για το χρηματιστήριο είναι το P&L των σημερινών trades. Τα δολάρια (χρηματιστήριο, πηγές σε $) μετατρέπονται σε € με live ισοτιμία. Κάθε μήνας κρατάει την τελευταία εικόνα της περιουσίας σου.
+  </div>
+</div>
+
+<!-- FX -->
+<div class="view" id="view-fx">
+  <div class="card" style="text-align:center;">
+    <span class="label">ΙΣΟΤΙΜΙΑ</span>
+    <div class="big-num gold" id="fxBig">—</div>
+    <div class="info" id="fxSmall"></div>
+    <button class="btn-ghost" style="margin-top:10px;" onclick="fetchFx(true)">🔄 Ανανέωση</button>
+  </div>
+  <div class="card">
+    <span class="label">ΔΟΛΑΡΙΑ</span>
+    <div class="fx-field"><input type="text" inputmode="decimal" class="fx-in" id="fxUsd" placeholder="0" oninput="fxType('usd')"><span class="cur">$</span></div>
+    <div style="text-align:center;font-size:20px;color:#64748b;margin:6px 0;">⇅</div>
+    <span class="label">ΕΥΡΩ</span>
+    <div class="fx-field"><input type="text" inputmode="decimal" class="fx-in" id="fxEur" placeholder="0" oninput="fxType('eur')"><span class="cur">€</span></div>
+    <div class="info">Γράψε σε όποιο από τα δύο θέλεις — το άλλο βγαίνει αυτόματα.</div>
+  </div>
+  <div class="section-title">ΓΡΗΓΟΡΗ ΑΝΑΦΟΡΑ</div>
+  <div class="card" id="fxTable"></div>
+</div>
+
+<!-- MONTH -->
+<div class="view" id="view-month">
+  <div class="card"><input type="month" id="monthPicker" onchange="renderMonth()"></div>
+  <div class="card" style="text-align:center;">
+    <span class="label" id="monthLabel">—</span>
+    <div class="big-num neu" id="monthTotal">€0,00</div>
+    <div style="display:flex;justify-content:center;gap:12px;margin-top:10px;">
+      <span class="tag" id="winTag" style="background:#10b98122;color:#10b981;"></span>
+      <span class="tag" id="lossTag" style="background:#ef444422;color:#ef4444;"></span>
+    </div>
+  </div>
+  <div id="monthAllocSection" style="display:none;">
+    <div class="card" id="monthAllocDisplay"></div>
+  </div>
+  <div class="section-title">ΗΜΕΡΕΣ</div>
+  <div id="monthDays"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="view" id="view-settings">
+  <div class="section-title">ΣΤΟΧΟΣ ΕΤΟΥΣ</div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <span class="label">Ετήσιος Στόχος</span>
+        <div class="mono gold" style="font-size:26px;font-weight:700;" id="goalShow">€21.000,00</div>
+      </div>
+      <button class="btn-ghost" onclick="openModal('goalModal')">✏️ Αλλαγή</button>
+    </div>
+  </div>
+
+  <div class="section-title">ΚΕΦΑΛΑΙΟ ΕΝΑΡΞΗΣ</div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <span class="label">Αρχικό Κεφάλαιο</span>
+        <div class="mono blue" style="font-size:26px;font-weight:700;" id="capitalShow">€0,00</div>
+        <div class="info" id="roiShow"></div>
+      </div>
+      <button class="btn-ghost" onclick="openModal('capitalModal')">✏️ Αλλαγή</button>
+    </div>
+  </div>
+
+  <div class="section-title">ΚΑΤΑΝΟΜΗ ΚΕΡΔΩΝ</div>
+  <div class="card">
+    <div id="allocSettings"></div>
+    <button class="btn-add-alloc" onclick="addAlloc()">+ Νέα κατηγορία</button>
+    <div id="allocTotals" style="margin-top:12px;border-top:1px solid #1e2a3a;padding-top:12px;"></div>
+  </div>
+
+  <div class="section-title">ΣΕΙΡΑ & ΕΜΦΑΝΙΣΗ TABS</div>
+  <div class="card">
+    <div id="tabOrderList"></div>
+    <div class="info">↑↓ αλλάζουν τη σειρά · 👁️ εμφάνιση / απόκρυψη tab</div>
+  </div>
+
+  <div class="section-title">ΣΤΑΤΙΣΤΙΚΑ</div>
+  <div class="card" id="statsDisplay"></div>
+
+  <div class="section-title">BACKUP & ΕΠΑΝΑΦΟΡΑ</div>
+  <div class="card">
+    <button class="btn-gold" style="margin-bottom:10px;" onclick="exportBackup()">⬇️ Export (κατέβασμα αντιγράφου)</button>
+    <button class="btn-ghost" style="width:100%;" onclick="document.getElementById('importFileInput').click()">⬆️ Import (επαναφορά από αρχείο)</button>
+    <input type="file" id="importFileInput" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
+    <div class="info" style="text-align:center;margin-top:8px;">Το αντίγραφο περιλαμβάνει εγγραφές + εικόνες. Κράτα το κάπου ασφαλές.</div>
+  </div>
+
+  <div class="section-title">ΔΕΔΟΜΕΝΑ</div>
+  <div class="card">
+    <button class="btn-ghost" style="width:100%;color:#ef4444;border-color:#ef444444;" onclick="confirmReset()">🗑️ Διαγραφή όλων των δεδομένων</button>
+    <div class="info" style="text-align:center;margin-top:8px;">Μη αναστρέψιμη ενέργεια</div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="goalModal">
+  <div class="modal">
+    <h3>🎯 Ετήσιος Στόχος</h3>
+    <input type="number" id="goalInput" placeholder="π.χ. 21000">
+    <button class="btn-gold" onclick="saveGoal()">Αποθήκευση</button>
+  </div>
+</div>
+<div class="modal-overlay" id="capitalModal">
+  <div class="modal">
+    <h3>💰 Αρχικό Κεφάλαιο</h3>
+    <input type="number" id="capitalInput" placeholder="π.χ. 5000">
+    <button class="btn-gold" onclick="saveCapital()">Αποθήκευση</button>
+  </div>
+</div>
+
+<!-- ADD ALLOC MODAL -->
+<div class="modal-overlay" id="addAllocModal">
+  <div class="modal">
+    <h3>➕ Νέα Κατηγορία</h3>
+    <div style="margin-bottom:10px;">
+      <span class="label">Emoji</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;" id="emojiPicker">
+        <button class="emoji-btn" onclick="selectEmoji(this,'💼')">💼</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'🏠')">🏠</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'🚗')">🚗</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'✈️')">✈️</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'🎯')">🎯</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'💊')">💊</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'📚')">📚</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'🎮')">🎮</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'🍔')">🍔</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'⭐')">⭐</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'💡')">💡</button>
+        <button class="emoji-btn" onclick="selectEmoji(this,'🔒')">🔒</button>
+      </div>
+      <input type="text" id="newAllocEmoji" placeholder="ή γράψε δικό σου emoji" style="margin-top:8px;">
+    </div>
+    <div style="margin-bottom:10px;">
+      <span class="label">Όνομα</span>
+      <input type="text" id="newAllocLabel" placeholder="π.χ. Διακοπές">
+    </div>
+    <div style="margin-bottom:14px;">
+      <span class="label">Ποσοστό %</span>
+      <input type="number" id="newAllocPct" placeholder="π.χ. 10" min="0" max="100">
+    </div>
+    <button class="btn-gold" onclick="saveNewAlloc()">Προσθήκη</button>
+  </div>
+</div>
+
+<!-- ADD/EDIT GOAL MODAL -->
+<div class="modal-overlay" id="goalEditModal">
+  <div class="modal">
+    <h3 id="goalModalTitle">🎯 Νέος Στόχος</h3>
+    <div style="margin-bottom:10px;">
+      <span class="label">Emoji</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;" id="goalEmojiPicker">
+        <button class="emoji-btn" onclick="selectGoalEmoji(this,'🎯')">🎯</button>
+        <button class="emoji-btn" onclick="selectGoalEmoji(this,'🏠')">🏠</button>
+        <button class="emoji-btn" onclick="selectGoalEmoji(this,'🚗')">🚗</button>
+        <button class="emoji-btn" onclick="selectGoalEmoji(this,'✈️')">✈️</button>
+        <button class="emoji-btn" onclick="selectGoalEmoji(this,'💰')">💰</button>
+        <button class="emoji-btn" onclick="selectGoalEmoji(this,'🏦')">🏦</button>
+        <button class="emoji-btn" onclick="selectGoalEmoji(this,'⭐')">⭐</button>
+        <button class="emoji-btn" onclick="selectGoalEmoji(this,'💎')">💎</button>
+        <button class="emoji-btn" onclick="selectGoalEmoji(this,'🚀')">🚀</button>
+      </div>
+      <input type="text" id="newGoalEmoji" placeholder="ή δικό σου emoji" style="margin-top:8px;">
+    </div>
+    <div style="margin-bottom:10px;">
+      <span class="label">Όνομα</span>
+      <input type="text" id="newGoalLabel" placeholder="π.χ. Σπίτι">
+    </div>
+    <div style="margin-bottom:14px;">
+      <span class="label">Ποσό στόχου (€)</span>
+      <input type="number" id="newGoalTarget" placeholder="π.χ. 20000" min="1">
+    </div>
+    <button class="btn-gold" onclick="saveGoalItem()">Αποθήκευση</button>
+    <button class="btn-ghost" id="goalDeleteBtn" style="width:100%;margin-top:10px;color:#ef4444;border-color:#ef444444;display:none;" onclick="deleteGoalItem()">🗑️ Διαγραφή στόχου</button>
+  </div>
+</div>
+
+<nav class="nav" id="nav"></nav>
+
+<!-- ASSET MODAL -->
+<div class="modal-overlay" id="assetModal">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <h3 id="assetModalTitle">➕ Νέα πηγή</h3>
+    <div id="assetKindWrap">
+      <span class="label">Τύπος</span>
+      <div class="type-toggle" style="margin-bottom:12px;">
+        <button class="type-btn" id="kind-btc" onclick="selectAssetKind('btc')">₿ Bitcoin</button>
+        <button class="type-btn" id="kind-gold" onclick="selectAssetKind('gold')">🥇 Χρυσός</button>
+        <button class="type-btn" id="kind-manual" onclick="selectAssetKind('manual')">💶 Χέρι (€)</button>
+      </div>
+    </div>
+    <span class="label">Όνομα</span>
+    <input type="text" id="assetName" placeholder="π.χ. Bitcoin">
+    <div id="curWrap">
+      <span class="label">Νόμισμα</span>
+      <div class="type-toggle" style="margin-bottom:12px;">
+        <button class="type-btn" id="cur-eur" onclick="selectAssetCur('eur')">€ Ευρώ</button>
+        <button class="type-btn" id="cur-usd" onclick="selectAssetCur('usd')">$ Δολάριο</button>
+      </div>
+    </div>
+    <div id="goldUnitWrap">
+      <span class="label">Μονάδα χρυσού</span>
+      <div class="type-toggle" style="margin-bottom:12px;">
+        <button class="type-btn" id="unit-g" onclick="selectGoldUnit('g')">Γραμμάρια (γρ.)</button>
+        <button class="type-btn" id="unit-oz" onclick="selectGoldUnit('oz')">Ουγγιές (oz)</button>
+      </div>
+    </div>
+    <div id="assetQtyWrap">
+      <span class="label" id="assetQtyLabel">Ποσότητα</span>
+      <input type="number" id="assetQty" step="any" placeholder="π.χ. 0.5">
+    </div>
+    <div id="assetPriceWrap">
+      <span class="label" id="assetPriceLabel">Χειροκίνητη τιμή</span>
+      <input type="number" id="assetPrice" step="any" placeholder="μόνο αν δεν πιάνει live τιμή">
+    </div>
+    <span class="label" id="assetGoalLabel">Στόχος</span>
+    <input type="number" id="assetGoal" step="any" placeholder="π.χ. 1">
+    <button class="btn-gold" onclick="saveAsset()">Αποθήκευση</button>
+    <button class="btn-ghost" id="assetDeleteBtn" style="width:100%;margin-top:10px;color:#ef4444;border-color:#ef444444;display:none;" onclick="deleteAsset()">🗑️ Διαγραφή πηγής</button>
+  </div>
+</div>
+
+<!-- ENTRY EDIT MODAL -->
+<div class="modal-overlay" id="entryModal">
+  <div class="modal">
+    <h3>✏️ Επεξεργασία εγγραφής</h3>
+    <div class="type-toggle" style="margin-bottom:12px;">
+      <button class="type-btn" id="eType-trade" onclick="selectEditType('trade')">📈 Trade</button>
+      <button class="type-btn" id="eType-cash_travel" onclick="selectEditType('cash_travel')">💸 Αγύριστα</button>
+      <button class="type-btn" id="eType-cash_hold" onclick="selectEditType('cash_hold')">💵 Άκρη</button>
+      <button class="type-btn" id="eType-deposit" onclick="selectEditType('deposit')">📥 Κατάθεση</button>
+    </div>
+    <input type="date" id="eDate">
+    <input type="number" id="eAmount" step="0.01" placeholder="Ποσό">
+    <input type="text" id="eNote" placeholder="Σημείωση">
+    <button class="btn-gold" onclick="saveEntryEdit()">Αποθήκευση</button>
+  </div>
+</div>
+
+<!-- IMAGE VIEWER -->
+<div class="img-viewer" id="imgViewer">
+  <button class="iv-close" onclick="closeImgViewer()">×</button>
+  <img id="imgViewerImg" src="">
+  <div class="iv-info" id="imgViewerInfo"></div>
+  <button class="btn-ghost" style="margin-top:16px;color:#ef4444;border-color:#ef444444;" onclick="deleteImgFromViewer()">🗑️ Διαγραφή εικόνας</button>
+</div>
+
+<script>
+const COLORS = ['#ef4444','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316','#84cc16','#14b8a6'];
+
+// ══════════════════════════════════════════════════════════
+//  INDEXEDDB — αποθήκευση εικόνων (χωράει εκατοντάδες MB)
+// ══════════════════════════════════════════════════════════
+let idb = null;
+function openImgDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('tj_images', 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('images')) db.createObjectStore('images');
+    };
+    req.onsuccess = e => { idb = e.target.result; resolve(idb); };
+    req.onerror = e => reject(e);
+  });
+}
+function idbPut(key, blob) {
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction('images','readwrite');
+    tx.objectStore('images').put(blob, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e);
+  });
+}
+function idbGet(key) {
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction('images','readonly');
+    const r = tx.objectStore('images').get(key);
+    r.onsuccess = () => resolve(r.result || null);
+    r.onerror = e => reject(e);
+  });
+}
+function idbDelete(key) {
+  return new Promise((resolve) => {
+    const tx = idb.transaction('images','readwrite');
+    tx.objectStore('images').delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+  });
+}
+function idbAllKeys() {
+  return new Promise((resolve) => {
+    const tx = idb.transaction('images','readonly');
+    const r = tx.objectStore('images').getAllKeys();
+    r.onsuccess = () => resolve(r.result || []);
+    r.onerror = () => resolve([]);
+  });
+}
+
+// Συμπίεση εικόνας πριν την αποθήκευση (max 1400px, jpeg ~0.82)
+// Ανθεκτικό: σε οποιοδήποτε σφάλμα, επιστρέφει το αρχικό file ως blob.
+function compressImage(file) {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onerror = () => resolve(file);          // fallback: κράτα το αρχικό
+      img.onerror = () => resolve(file);             // fallback: κράτα το αρχικό
+      reader.onload = e => { img.src = e.target.result; };
+      img.onload = () => {
+        try {
+          const maxDim = 1400;
+          let { width, height } = img;
+          if (!width || !height) { resolve(file); return; }
+          if (width > maxDim || height > maxDim) {
+            if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else { width = Math.round(width * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          canvas.toBlob(b => resolve(b || file), 'image/jpeg', 0.82);  // null -> fallback
+        } catch(err) { resolve(file); }
+      };
+      reader.readAsDataURL(file);
+    } catch(err) { resolve(file); }
+  });
+}
+
+// URL cache για preview (ώστε να μη διαρρέει μνήμη)
+const objUrlCache = {};
+async function getImgUrl(key) {
+  if (objUrlCache[key]) return objUrlCache[key];
+  if (!idb) return null;                 // DB δεν είναι έτοιμο ακόμα
+  const blob = await idbGet(key);
+  if (!blob) return null;
+  const url = URL.createObjectURL(blob);
+  objUrlCache[key] = url;
+  return url;
+}
+
+// Προσωρινή εικόνα που περιμένει καταχώρηση
+let pendingImgBlob = null;
+
+async function handleImgPick(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    toast('Επεξεργασία εικόνας…','#3b82f6');
+    pendingImgBlob = await compressImage(file);
+    if (!pendingImgBlob) { toast('Δεν διαβάστηκε η εικόνα','#ef4444'); return; }
+    const url = URL.createObjectURL(pendingImgBlob);
+    const prev = document.getElementById('imgPreview');
+    prev.src = url; prev.style.display = 'block';
+    document.getElementById('imgUploadBox').innerHTML = '✅ Εικόνα έτοιμη — άλλαξέ την πατώντας ξανά';
+    toast('✅ Εικόνα φορτώθηκε');
+  } catch(err) {
+    toast('Σφάλμα εικόνας: '+err.message,'#ef4444');
+  }
+}
+
+
+let state = {
+  entries: [],
+  goal: 21000,
+  capital: 0,
+  allocations: [
+    { id: 'tax',      label: 'Εφορία',                     emoji: '🏛️', percent: 15, color: '#ef4444' },
+    { id: 'savings',  label: 'Αποταμίευση',                emoji: '🏦', percent: 20, color: '#3b82f6' },
+    { id: 'reinvest', label: 'Reinvest Trading',           emoji: '📈', percent: 30, color: '#10b981' },
+    { id: 'assets',   label: 'Crypto / Χρυσός / Ακίνητα', emoji: '🪙', percent: 15, color: '#f59e0b' },
+  ],
+  goals: [
+    { id: 'g1', label: 'Στόχος 1', emoji: '🎯', target: 20000, color: '#f59e0b' },
+    { id: 'g2', label: 'Σπίτι',    emoji: '🏠', target: 20000, color: '#3b82f6' },
+  ]
+};
+
+const TABS = [
+  { id:'dashboard', title:'Επισκόπηση',      label:'Dashboard',  icon:'📊' },
+  { id:'log',       title:'Καταχώρηση',      label:'Καταχώρηση', icon:'✏️' },
+  { id:'wealth',    title:'Περιουσία',       label:'Περιουσία',  icon:'💎' },
+  { id:'gallery',   title:'Βιβλιοθήκη',      label:'Εικόνες',    icon:'🖼️' },
+  { id:'goals',     title:'Στόχοι',          label:'Στόχοι',     icon:'🎯' },
+  { id:'rules',     title:'Κανόνες',         label:'Κανόνες',    icon:'📋' },
+  { id:'checklist', title:'Checklist',       label:'Checklist',  icon:'✅' },
+  { id:'month',     title:'Μηνιαία Ανάλυση', label:'Μήνας',      icon:'📅' },
+  { id:'forecast',  title:'Προβλέψεις',      label:'Πρόβλ.',     icon:'🔮' },
+  { id:'fx',        title:'Μετατροπή € ⇄ $', label:'€ ⇄ $',     icon:'💱' },
+  { id:'settings',  title:'Ρυθμίσεις',       label:'Ρυθμίσεις',  icon:'⚙️' },
+];
+let currentView = 'dashboard';
+
+let newAllocEmoji = '⭐';
+let newGoalEmoji = '🎯';
+
+function save() { localStorage.setItem('tj_state', JSON.stringify(state)); }
+function load() {
+  const raw = localStorage.getItem('tj_state');
+  if (raw) { try { state = JSON.parse(raw); } catch(e) {} }
+  migrate();
+}
+function migrate() {
+  if (!Array.isArray(state.entries)) state.entries = [];
+  // Backward compatibility: πρόσθεσε πεδία που μπορεί να λείπουν από παλιά δεδομένα
+  if (!Array.isArray(state.goals)) {
+    state.goals = [
+      { id: 'g1', label: 'Στόχος 1', emoji: '🎯', target: 20000, color: '#f59e0b' },
+      { id: 'g2', label: 'Σπίτι',    emoji: '🏠', target: 20000, color: '#3b82f6' },
+    ];
+  }
+  // Παλιές εγγραφές: αν δεν έχουν type, είναι κανονικά trades
+  state.entries.forEach(e => { if (!e.type) e.type = 'trade'; });
+  // Κανόνες: αν λείπουν, ξεκίνα με άδεια λίστα
+  if (!Array.isArray(state.rules)) state.rules = [];
+  // Checklist: ανεξάρτητοι κανόνες πριν το trade
+  if (!Array.isArray(state.checklist)) state.checklist = [];
+  // Περιουσία
+  if (!Array.isArray(state.assets)) state.assets = [
+    { id:'broker', kind:'broker', label:'Χρηματιστήριο', emoji:'📈', goal:0, color:'#10b981' }
+  ];
+  if (!state.wealthSnaps || typeof state.wealthSnaps !== 'object') state.wealthSnaps = {};
+  if (!state.prices) state.prices = { btc:0, goldOz:0, at:null };
+  if (!state.fx) state.fx = { eurPerUsd:0, at:null };
+  // Tabs
+  const ids = TABS.map(t=>t.id);
+  if (!Array.isArray(state.tabOrder)) state.tabOrder = ids.slice();
+  state.tabOrder = state.tabOrder.filter(id=>ids.includes(id));
+  ids.forEach(id=>{ if (!state.tabOrder.includes(id)) state.tabOrder.splice(Math.max(0,state.tabOrder.length-1),0,id); });
+  if (!Array.isArray(state.tabHidden)) state.tabHidden = [];
+  state.tabHidden = state.tabHidden.filter(id=>ids.includes(id) && id!=='settings');
+}
+
+function usd(n) {
+  return new Intl.NumberFormat('el-GR',{style:'currency',currency:'USD',minimumFractionDigits:2}).format(n);
+}
+function fxRate() { return state.fx && state.fx.eurPerUsd > 0 ? state.fx.eurPerUsd : null; }   // € για 1 $
+function toEur(x) { const r = fxRate(); return r ? x*r : null; }
+function eurNote(x) { const v = toEur(x); return v===null ? '' : '≈ ' + eur(v); }
+function dual(x) { const n = eurNote(x); return usd(x) + (n ? `<div class="eur-sub">${n}</div>` : ''); }
+function eur(n) {
+  return new Intl.NumberFormat('el-GR',{style:'currency',currency:'EUR',minimumFractionDigits:2}).format(n);
+}
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function monthStr()  { return new Date().toISOString().slice(0,7); }
+function monthName(m){ return new Date(m+'-01').toLocaleDateString('el-GR',{month:'long',year:'numeric'}); }
+function setColor(el, val) {
+  el.className = el.className.replace(/\b(pos|neg|neu)\b/g,'');
+  el.classList.add(val>0?'pos':val<0?'neg':'neu');
+}
+function nextColor() {
+  const used = state.allocations.map(a=>a.color);
+  return COLORS.find(c=>!used.includes(c)) || COLORS[state.allocations.length % COLORS.length];
+}
+
+function toast(msg, color='#10b981') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = color;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id==='goalModal') document.getElementById('goalInput').value = state.goal;
+  if (id==='capitalModal') document.getElementById('capitalInput').value = state.capital||'';
+}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open')); }
+
+function saveGoal() {
+  const v = parseFloat(document.getElementById('goalInput').value);
+  if(isNaN(v)||v<=0) return;
+  state.goal=v; save(); closeModals(); renderAll();
+  toast('Στόχος αποθηκεύτηκε!');
+}
+function saveCapital() {
+  const v = parseFloat(document.getElementById('capitalInput').value);
+  if(isNaN(v)) return;
+  state.capital=v; save(); closeModals(); renderAll();
+  toast('Κεφάλαιο αποθηκεύτηκε!');
+}
+
+// ── ADD ALLOC ──
+function addAlloc() {
+  newAllocEmoji = '⭐';
+  document.getElementById('newAllocEmoji').value = '';
+  document.getElementById('newAllocLabel').value = '';
+  document.getElementById('newAllocPct').value = '';
+  document.querySelectorAll('#emojiPicker .emoji-btn').forEach(b=>b.style.outline='');
+  openModal('addAllocModal');
+}
+function selectEmoji(btn, emoji) {
+  newAllocEmoji = emoji;
+  document.getElementById('newAllocEmoji').value = '';
+  document.querySelectorAll('#emojiPicker .emoji-btn').forEach(b=>b.style.outline='');
+  btn.style.outline = '2px solid #f59e0b';
+}
+function saveNewAlloc() {
+  const emojiInput = document.getElementById('newAllocEmoji').value.trim();
+  const emoji = emojiInput || newAllocEmoji;
+  const label = document.getElementById('newAllocLabel').value.trim();
+  const pct   = parseInt(document.getElementById('newAllocPct').value);
+  if(!label) { toast('Βάλε όνομα!','#ef4444'); return; }
+  if(isNaN(pct)||pct<0||pct>100) { toast('Ποσοστό 0-100','#ef4444'); return; }
+  state.allocations.push({ id: 'a'+Date.now(), label, emoji, percent: pct, color: nextColor() });
+  save(); closeModals(); renderAll();
+  toast('Κατηγορία προστέθηκε! ✅');
+}
+
+// ── UPDATE ALLOC ──
+function updateAllocPct(id, val) {
+  const v = parseInt(val);
+  if(isNaN(v)||v<0||v>100) return;
+  const a = state.allocations.find(a=>a.id===id);
+  if(a) { a.percent = v; save(); renderAllocTotals(); renderDashboard(); }
+}
+function updateAllocLabel(id, val) {
+  const a = state.allocations.find(a=>a.id===id);
+  if(a) { a.label = val; save(); }
+}
+function deleteAlloc(id) {
+  if(!confirm('Διαγραφή κατηγορίας;')) return;
+  state.allocations = state.allocations.filter(a=>a.id!==id);
+  save(); renderAll();
+}
+
+// ── ENTRIES ──
+let currentEntryType = 'trade';
+const TYPE_HINTS = {
+  trade:       'Κέρδος ή ζημιά από trading.',
+  cash_travel: '💸 Μετρητά αγύριστα — ξοδεύονται, ΜΕΙΩΝΟΥΝ το σύνολο.',
+  cash_hold:   '💵 Μετρητά άκρη — τα κρατάς, ΔΕΝ μειώνουν το σύνολο.',
+  deposit:     '📥 Κατάθεση από την τσέπη σου — ανεβάζει το υπόλοιπο, ΔΕΝ μετράει ως κέρδος ούτε για φόρο.'
+};
+const ENTRY_TYPES = ['trade','cash_travel','cash_hold','deposit'];
+function selectEntryType(t) {
+  currentEntryType = t;
+  ENTRY_TYPES.forEach(k=>{
+    document.getElementById('typeBtn-'+k).classList.toggle('sel', k===t);
+  });
+  document.getElementById('typeHint').textContent = TYPE_HINTS[t];
+  const amtInput = document.getElementById('inputAmount');
+  amtInput.placeholder = t==='trade' ? 'Ποσό π.χ. 250 ή -80' : 'Ποσό μετρητών π.χ. 500';
+}
+
+async function addEntry() {
+  let amt = parseFloat(document.getElementById('inputAmount').value.replace(',','.'));
+  if(isNaN(amt)) { toast('Βάλε ποσό!','#ef4444'); return; }
+  // Για αναλήψεις μετρητών κρατάμε το ποσό ως θετικό (η λογική το χειρίζεται)
+  if (currentEntryType !== 'trade') amt = Math.abs(amt);
+  const id = Date.now();
+  let hasImg = false;
+  if (pendingImgBlob) {
+    if (!idb) { try { await openImgDB(); } catch(e){} }
+    try { await idbPut('img_'+id, pendingImgBlob); hasImg = true; }
+    catch(e) { toast('Σφάλμα αποθήκευσης εικόνας','#ef4444'); }
+  }
+  state.entries.unshift({
+    id: id,
+    date: document.getElementById('inputDate').value || todayStr(),
+    amount: amt,
+    note: document.getElementById('inputNote').value.trim(),
+    hasImg: hasImg,
+    type: currentEntryType
+  });
+  document.getElementById('inputAmount').value = '';
+  document.getElementById('inputNote').value = '';
+  // reset image picker
+  pendingImgBlob = null;
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('imgPreview').src = '';
+  document.getElementById('imgFileInput').value = '';
+  document.getElementById('imgUploadBox').innerHTML = '📷 Πάτα για να ανεβάσεις εικόνα από το chart';
+  save(); renderAll();
+  const msgs = {
+    trade:       amt>=0?'✅ Κέρδος καταχωρήθηκε!':'📉 Ζημιά καταχωρήθηκε!',
+    cash_travel: '💸 Μετρητά (αγύριστα) καταχωρήθηκαν',
+    cash_hold:   '💵 Μετρητά (άκρη) καταχωρήθηκαν',
+    deposit:     '📥 Κατάθεση καταχωρήθηκε'
+  };
+  const colors = { trade: amt>=0?'#10b981':'#ef4444', cash_travel:'#f59e0b', cash_hold:'#3b82f6', deposit:'#8b5cf6' };
+  toast(msgs[currentEntryType], colors[currentEntryType]);
+}
+async function deleteEntry(id) {
+  if(!confirm('Διαγραφή εγγραφής;')) return;
+  const e = state.entries.find(x=>x.id===id);
+  if (e && e.hasImg) {
+    await idbDelete('img_'+id);
+    if (objUrlCache['img_'+id]) { URL.revokeObjectURL(objUrlCache['img_'+id]); delete objUrlCache['img_'+id]; }
+  }
+  state.entries = state.entries.filter(e=>e.id!==id);
+  save(); renderAll();
+}
+
+// ── P&L HELPERS ──
+// trade: κανονικό κέρδος/ζημιά | cash_travel: ανάληψη που μειώνει το σύνολο
+// cash_hold: ανάληψη που ΔΕΝ μειώνει (φόρος/κράτηση σε μετρητά)
+function tradeSum()   { return state.entries.filter(e=>e.type==='trade').reduce((s,e)=>s+e.amount,0); }
+function travelSum()  { return state.entries.filter(e=>e.type==='cash_travel').reduce((s,e)=>s+Math.abs(e.amount),0); }
+function holdSum()    { return state.entries.filter(e=>e.type==='cash_hold').reduce((s,e)=>s+Math.abs(e.amount),0); }
+function depositSum() { return state.entries.filter(e=>e.type==='deposit').reduce((s,e)=>s+Math.abs(e.amount),0); }
+
+// Συνολικό P&L = κέρδη trading − αναλήψεις ταξιδιού (τα "hold" δεν το μειώνουν, οι καταθέσεις δεν το αυξάνουν)
+function totalPnL()    { return tradeSum() - travelSum(); }
+// Διαθέσιμο μέσα στον λογαριασμό = P&L − μετρητά άκρη + καταθέσεις από τσέπη
+function inAccount()   { return totalPnL() - holdSum() + depositSum(); }
+// Φόρος = 15% στα καθαρά κέρδη trading (μόνο trades, χωρίς αναλήψεις)
+function taxDue()      { const t = tradeSum(); return t > 0 ? t * 0.15 : 0; }
+
+function todayPnL()    { return state.entries.filter(e=>e.type==='trade' && e.date===todayStr()).reduce((s,e)=>s+e.amount,0); }
+function curMonthPnL() { return state.entries.filter(e=>e.type==='trade' && e.date.startsWith(monthStr())).reduce((s,e)=>s+e.amount,0); }
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  const total = totalPnL(), goal = state.goal;
+  const pct = goal>0 ? Math.min((total/goal)*100,100) : 0;
+  const circ = 2*Math.PI*60;
+  const circle = document.getElementById('ringCircle');
+  circle.style.strokeDashoffset = circ-(pct/100)*circ;
+  circle.style.stroke = total>=goal?'#10b981':'#f59e0b';
+  const ringPct = document.getElementById('ringPct');
+  ringPct.textContent = (goal>0?(total/goal*100):0).toFixed(1)+'%';
+  ringPct.style.color = total>=goal?'#10b981':'#f59e0b';
+  const totalEl = document.getElementById('totalPnL');
+  totalEl.textContent = (total>0?'+':'')+usd(total); setColor(totalEl,total);
+  document.getElementById('totalPnLEur').textContent = eurNote(total);
+  document.getElementById('goalDisplay').textContent = usd(goal);
+  document.getElementById('remainingGoal').textContent = usd(Math.max(0,goal-total));
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+  const td=todayPnL(), mp=curMonthPnL();
+  const tdEl=document.getElementById('todayPnL');
+  tdEl.textContent=(td>0?'+':'')+usd(td); setColor(tdEl,td);
+  document.getElementById('todayPnLEur').textContent = eurNote(td);
+  const mpEl=document.getElementById('monthPnL');
+  mpEl.textContent=(mp>0?'+':'')+usd(mp); setColor(mpEl,mp);
+  document.getElementById('monthPnLEur').textContent = eurNote(mp);
+
+  // Φόρος & μετρητά
+  document.getElementById('taxDue').innerHTML = dual(taxDue());
+  document.getElementById('cashHold').innerHTML = dual(holdSum());
+  document.getElementById('cashTravel').innerHTML = dual(travelSum());
+  document.getElementById('depositTotal').innerHTML = dual(depositSum());
+  const inAcc = inAccount();
+  const inAccEl = document.getElementById('inAccount');
+  inAccEl.innerHTML = dual(inAcc);
+  inAccEl.style.color = inAcc>=0 ? '#10b981' : '#ef4444';
+
+  const allocSec = document.getElementById('allocSection');
+  const allocDiv = document.getElementById('allocDisplay');
+  if(total>0) {
+    allocSec.style.display='';
+    const totalAlloc = state.allocations.reduce((s,a)=>s+a.percent,0);
+    const free = 100-totalAlloc;
+    allocDiv.innerHTML = state.allocations.map(a=>`
+      <div class="alloc-row">
+        <div style="font-size:20px;">${a.emoji}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:#e2e8f0;">${a.label}</div>
+          <div class="alloc-bar-bg"><div class="alloc-bar" style="background:${a.color};width:${Math.min(a.percent,100)}%;"></div></div>
+        </div>
+        <div style="text-align:right;min-width:90px;">
+          <div class="mono" style="font-size:14px;font-weight:700;color:${a.color};">${usd(total*a.percent/100)}</div>
+          <div class="eur-sub">${eurNote(total*a.percent/100)}</div>
+          <div style="font-size:11px;color:#64748b;">${a.percent}%</div>
+        </div>
+      </div>`).join('')+(free>0?`
+      <div style="border-top:1px solid #1e2a3a;padding-top:10px;display:flex;justify-content:space-between;color:#64748b;font-size:13px;">
+        <span>💰 Ελεύθερο (${free}%)</span>
+        <span class="mono" style="text-align:right;">${usd(total*free/100)}<div class="eur-sub">${eurNote(total*free/100)}</div></span>
+      </div>`:'');
+  } else allocSec.style.display='none';
+
+  const byMonth={};
+  // Μόνο trades — οι αναλήψεις μετρητών (αγύριστα/άκρη) ΔΕΝ μπαίνουν στον μήνα
+  state.entries.filter(e=>e.type==='trade').forEach(e=>{const m=e.date.slice(0,7); byMonth[m]=(byMonth[m]||0)+e.amount;});
+  const months=Object.keys(byMonth).sort().reverse();
+  const monthsSec=document.getElementById('monthsSection');
+  const monthsDiv=document.getElementById('monthsDisplay');
+  if(months.length>0) {
+    monthsSec.style.display='';
+    monthsDiv.innerHTML=months.map(m=>{
+      const v=byMonth[m];
+      return `<div class="month-row">
+        <div style="font-size:14px;color:#94a3b8;text-transform:capitalize;">${monthName(m)}</div>
+        <div style="text-align:right;"><div class="mono" style="font-size:16px;font-weight:700;color:${v>=0?'#10b981':'#ef4444'};">${v>0?'+':''}${usd(v)}</div><div class="eur-sub">${eurNote(v)}</div></div>
+      </div>`;
+    }).join('');
+  } else monthsSec.style.display='none';
+}
+
+// ── LOG ──
+function renderLog() {
+  const el=document.getElementById('entriesList');
+  if(!state.entries.length) {
+    el.innerHTML='<div class="card" style="text-align:center;color:#475569;font-size:14px;">Δεν υπάρχουν εγγραφές ακόμα.</div>';
+    return;
+  }
+  const typeMeta = {
+    cash_travel: { tag:'💸 ΑΓΥΡΙΣΤΑ', color:'#f59e0b', sign:'−' },
+    cash_hold:   { tag:'💵 ΑΚΡΗ',      color:'#3b82f6', sign:'' },
+    deposit:     { tag:'📥 ΚΑΤΑΘΕΣΗ',  color:'#8b5cf6', sign:'+' }
+  };
+  el.innerHTML=state.entries.map(e=>{
+    const meta = typeMeta[e.type];
+    if (meta) {
+      // Ανάληψη μετρητών
+      return `<div class="card card-sm entry-row">
+        ${e.hasImg ? `<img class="entry-thumb" id="thumb_${e.id}" onclick="openImgViewer(${e.id})">` : ''}
+        <div style="flex:1;">
+          <div class="mono" style="font-size:18px;font-weight:700;color:${meta.color};">
+            ${meta.sign}${eur(Math.abs(e.amount))}
+          </div>
+          <span class="tag" style="background:${meta.color}22;color:${meta.color};font-size:10px;margin-top:2px;">${meta.tag}</span>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:13px;color:#94a3b8;">${new Date(e.date+'T12:00:00').toLocaleDateString('el-GR')}</div>
+          ${e.note?`<div style="font-size:12px;color:#64748b;margin-top:2px;">${e.note}</div>`:''}
+        </div>
+        <button class="entry-edit" onclick="openEditEntry(${e.id})">✏️</button>
+        <button class="btn-del" onclick="deleteEntry(${e.id})">×</button>
+      </div>`;
+    }
+    // Κανονικό trade
+    return `<div class="card card-sm entry-row">
+      ${e.hasImg ? `<img class="entry-thumb" id="thumb_${e.id}" onclick="openImgViewer(${e.id})">` : ''}
+      <div class="mono" style="font-size:20px;font-weight:700;flex:1;color:${e.amount>=0?'#10b981':'#ef4444'};">
+        ${e.amount>0?'+':''}${eur(e.amount)}
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:13px;color:#94a3b8;">${new Date(e.date+'T12:00:00').toLocaleDateString('el-GR')}</div>
+        ${e.note?`<div style="font-size:12px;color:#64748b;margin-top:2px;">${e.note}</div>`:''}
+      </div>
+      <button class="entry-edit" onclick="openEditEntry(${e.id})">✏️</button>
+        <button class="btn-del" onclick="deleteEntry(${e.id})">×</button>
+    </div>`;
+  }).join('');
+  // Load thumbnails async
+  state.entries.filter(e=>e.hasImg).forEach(async e=>{
+    const url = await getImgUrl('img_'+e.id);
+    const img = document.getElementById('thumb_'+e.id);
+    if (img && url) img.src = url;
+  });
+}
+
+// ── MONTH ──
+function renderMonth() {
+  const m=document.getElementById('monthPicker').value||monthStr();
+  // Μόνο trades — οι αναλήψεις μετρητών ΔΕΝ μετράνε στον μήνα
+  const entries=state.entries.filter(e=>e.type==='trade' && e.date.startsWith(m)).sort((a,b)=>b.date.localeCompare(a.date));
+  const total=entries.reduce((s,e)=>s+e.amount,0);
+  const wins=entries.filter(e=>e.amount>0).length;
+  const losses=entries.filter(e=>e.amount<0).length;
+  document.getElementById('monthLabel').textContent=monthName(m).toUpperCase();
+  const totalEl=document.getElementById('monthTotal');
+  totalEl.textContent=(total>0?'+':'')+eur(total); setColor(totalEl,total);
+  document.getElementById('winTag').textContent=`✅ ${wins} κερδοφόρες`;
+  document.getElementById('lossTag').textContent=`❌ ${losses} ζημιογόνες`;
+  const allocSec=document.getElementById('monthAllocSection');
+  const allocDiv=document.getElementById('monthAllocDisplay');
+  if(total>0) {
+    allocSec.style.display='';
+    allocDiv.innerHTML='<span class="label">ΚΑΤΑΝΟΜΗ ΜΗΝΑ</span>'+state.allocations.map(a=>`
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:13px;">${a.emoji} ${a.label} (${a.percent}%)</span>
+        <span class="mono" style="font-size:13px;color:${a.color};font-weight:700;">${eur(total*a.percent/100)}</span>
+      </div>`).join('');
+  } else allocSec.style.display='none';
+  const daysEl=document.getElementById('monthDays');
+  if(!entries.length) {
+    daysEl.innerHTML='<div class="card" style="text-align:center;color:#475569;font-size:14px;">Δεν υπάρχουν εγγραφές.</div>';
+    return;
+  }
+  daysEl.innerHTML=entries.map(e=>`
+    <div class="card card-sm entry-row">
+      <div style="font-size:13px;color:#94a3b8;min-width:70px;">
+        ${new Date(e.date+'T12:00:00').toLocaleDateString('el-GR',{weekday:'short',day:'numeric'})}
+      </div>
+      <div class="mono" style="flex:1;font-size:18px;font-weight:700;color:${e.amount>=0?'#10b981':'#ef4444'};">
+        ${e.amount>0?'+':''}${eur(e.amount)}
+      </div>
+      ${e.note?`<div style="font-size:12px;color:#64748b;">${e.note}</div>`:''}
+    </div>`).join('');
+}
+
+// ── SETTINGS / ALLOC ──
+function renderAllocTotals() {
+  const total=totalPnL();
+  const totalAlloc=state.allocations.reduce((s,a)=>s+a.percent,0);
+  const free=100-totalAlloc;
+  document.getElementById('allocTotals').innerHTML=`
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+      <span style="color:#64748b;">Σύνολο κατανεμημένο</span>
+      <span class="mono" style="font-weight:700;color:${totalAlloc>100?'#ef4444':'#10b981'};">${totalAlloc}%</span>
+    </div>
+    ${free>0?`<div style="display:flex;justify-content:space-between;font-size:13px;color:#64748b;">
+      <span>💰 Ελεύθερο</span>
+      <span class="mono">${free}% ${total>0?'= '+eur(total*free/100):''}</span>
+    </div>`:''}
+    ${totalAlloc>100?'<div class="warn">⚠️ Υπερβαίνει το 100%! Μείωσε κάποιο ποσοστό.</div>':''}`;
+}
+
+function renderSettings() {
+  const total=totalPnL();
+  document.getElementById('goalShow').textContent=eur(state.goal);
+  document.getElementById('capitalShow').textContent=eur(state.capital);
+  document.getElementById('roiShow').textContent=state.capital>0?`Απόδοση: ${((total/state.capital)*100).toFixed(2)}%`:'';
+
+  // Alloc rows — slider + number input
+  document.getElementById('allocSettings').innerHTML=state.allocations.map((a,i)=>`
+    <div class="alloc-edit-row">
+      <div class="alloc-edit-top">
+        <div style="font-size:22px;">${a.emoji}</div>
+        <input type="text" value="${a.label}"
+          style="flex:1;padding:6px 10px;font-size:14px;border-radius:8px;"
+          onchange="updateAllocLabel('${a.id}',this.value)"
+          placeholder="Όνομα">
+        <span class="color-dot" style="background:${a.color};"></span>
+        <button class="btn-del" style="font-size:16px;color:#ef444488;" onclick="deleteAlloc('${a.id}')">🗑️</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="range" min="0" max="100" value="${a.percent}"
+          style="flex:1;accent-color:${a.color};"
+          oninput="syncPct('${a.id}',this.value,'pctNum${i}')">
+        <input type="number" id="pctNum${i}" value="${a.percent}" min="0" max="100"
+          class="alloc-pct-input" style="border-color:${a.color}44;"
+          oninput="syncPctFromNum('${a.id}',this.value,'range${i}',${i})"
+          onchange="updateAllocPct('${a.id}',this.value)">
+      </div>
+    </div>`).join('');
+
+  // Wire up range ids after render
+  state.allocations.forEach((a,i)=>{
+    const row = document.getElementById('allocSettings').querySelectorAll('.alloc-edit-row')[i];
+    if(row) row.querySelector('input[type=range]').id = 'range'+i;
+  });
+
+  renderAllocTotals();
+
+  // Stats — μόνο trades (όχι αναλήψεις μετρητών)
+  const trades=state.entries.filter(e=>e.type==='trade');
+  const wins=trades.filter(e=>e.amount>0);
+  const losses=trades.filter(e=>e.amount<0);
+  const best=trades.length?Math.max(...trades.map(e=>e.amount)):null;
+  const worst=trades.length?Math.min(...trades.map(e=>e.amount)):null;
+  const tSum=trades.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('statsDisplay').innerHTML=[
+    ['Συνολικές εγγραφές', trades.length],
+    ['Κερδοφόρες μέρες',   wins.length],
+    ['Ζημιογόνες μέρες',   losses.length],
+    ['Win rate',            trades.length?((wins.length/trades.length)*100).toFixed(1)+'%':'—'],
+    ['Καλύτερη μέρα',      best!==null?(best>0?'+':'')+eur(best):'—'],
+    ['Χειρότερη μέρα',     worst!==null?eur(worst):'—'],
+    ['Μέσος όρος/μέρα',    trades.length?eur(tSum/trades.length):'—'],
+  ].map(([k,v])=>`
+    <div class="stat-row">
+      <span style="color:#64748b;font-size:13px;">${k}</span>
+      <span class="mono" style="font-weight:700;font-size:14px;">${v}</span>
+    </div>`).join('');
+}
+
+function syncPct(id, val, numId) {
+  document.getElementById(numId).value = val;
+  updateAllocPct(id, val);
+}
+function syncPctFromNum(id, val, rangeId, i) {
+  const n = parseInt(val);
+  if(isNaN(n)||n<0||n>100) return;
+  const rangeEl = document.getElementById(rangeId);
+  if(rangeEl) rangeEl.value = n;
+  updateAllocPct(id, n);
+}
+
+function confirmReset() {
+  if(!confirm('Σίγουρα θέλεις να διαγράψεις ΟΛΑ τα δεδομένα;')) return;
+  state.entries=[]; save(); renderAll();
+  toast('Δεδομένα διαγράφηκαν.','#ef4444');
+}
+
+// ── IMAGE VIEWER ──
+let currentViewerId = null;
+async function openImgViewer(id) {
+  const e = state.entries.find(x=>x.id===id);
+  if (!e || !e.hasImg) return;
+  const url = await getImgUrl('img_'+id);
+  if (!url) { toast('Η εικόνα δεν βρέθηκε','#ef4444'); return; }
+  currentViewerId = id;
+  document.getElementById('imgViewerImg').src = url;
+  const delBtn = document.querySelector('#imgViewer .btn-ghost');
+  if (delBtn) delBtn.style.display = '';   // ξαναδείξε (μπορεί να κρύφτηκε από κανόνα)
+  const sign = e.amount>0?'+':'';
+  document.getElementById('imgViewerInfo').innerHTML =
+    `<span style="color:${e.amount>=0?'#10b981':'#ef4444'};font-weight:700;font-family:monospace;font-size:18px;">${sign}${eur(e.amount)}</span>`+
+    `<br>${new Date(e.date+'T12:00:00').toLocaleDateString('el-GR')}`+
+    (e.note?`<br><span style="color:#94a3b8;font-size:13px;">${e.note}</span>`:'');
+  document.getElementById('imgViewer').classList.add('open');
+}
+function closeImgViewer() {
+  document.getElementById('imgViewer').classList.remove('open');
+  currentViewerId = null;
+}
+async function deleteImgFromViewer() {
+  if (currentViewerId===null) return;
+  if (!confirm('Διαγραφή μόνο της εικόνας; (η εγγραφή μένει)')) return;
+  const e = state.entries.find(x=>x.id===currentViewerId);
+  if (e) {
+    await idbDelete('img_'+currentViewerId);
+    if (objUrlCache['img_'+currentViewerId]) { URL.revokeObjectURL(objUrlCache['img_'+currentViewerId]); delete objUrlCache['img_'+currentViewerId]; }
+    e.hasImg = false; save();
+  }
+  closeImgViewer(); renderAll();
+  toast('Εικόνα διαγράφηκε','#ef4444');
+}
+
+// ── GALLERY ──
+function renderGallery() {
+  const grid = document.getElementById('galleryGrid');
+  const withImg = state.entries.filter(e=>e.hasImg);
+  if (!withImg.length) {
+    grid.innerHTML = '<div class="gallery-empty" style="grid-column:1/-1;">Δεν υπάρχουν εικόνες ακόμα.<br>Ανέβασε screenshot κατά την καταχώρηση.</div>';
+    return;
+  }
+  grid.innerHTML = withImg.map(e=>{
+    const win = e.amount>=0;
+    return `<div class="gallery-item" onclick="openImgViewer(${e.id})">
+      <img id="gimg_${e.id}">
+      <span class="gi-tag" style="background:${win?'#10b981':'#ef4444'};color:#fff;">${win?'W':'L'}</span>
+      <div class="gi-amt" style="color:${win?'#10b981':'#ef4444'};">${e.amount>0?'+':''}${eur(e.amount)}</div>
+    </div>`;
+  }).join('');
+  withImg.forEach(async e=>{
+    const url = await getImgUrl('img_'+e.id);
+    const img = document.getElementById('gimg_'+e.id);
+    if (img && url) img.src = url;
+  });
+}
+
+// ── BACKUP EXPORT / IMPORT ──
+function blobToBase64(blob) {
+  return new Promise((resolve) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.readAsDataURL(blob);
+  });
+}
+function base64ToBlob(dataUrl) {
+  const [head, b64] = dataUrl.split(',');
+  const mime = head.match(/:(.*?);/)[1];
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr], {type:mime});
+}
+async function exportBackup() {
+  toast('Δημιουργία αντιγράφου…','#3b82f6');
+  const images = {};
+  const keys = await idbAllKeys();
+  for (const k of keys) {
+    const blob = await idbGet(k);
+    if (blob) images[k] = await blobToBase64(blob);
+  }
+  const backup = { version: 1, exportedAt: new Date().toISOString(), state: state, images: images };
+  const blob = new Blob([JSON.stringify(backup)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'trading-journal-backup-'+todayStr()+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✅ Αντίγραφο κατέβηκε!');
+}
+async function importBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('Η επαναφορά θα ΑΝΤΙΚΑΤΑΣΤΗΣΕΙ τα τρέχοντα δεδομένα. Συνέχεια;')) {
+    event.target.value=''; return;
+  }
+  toast('Επαναφορά…','#3b82f6');
+  try {
+    const text = await file.text();
+    const backup = JSON.parse(text);
+    if (!backup.state) throw new Error('Μη έγκυρο αρχείο');
+    state = backup.state;
+    migrate();
+    save();
+    // restore images
+    if (backup.images) {
+      for (const k in backup.images) {
+        await idbPut(k, base64ToBlob(backup.images[k]));
+      }
+    }
+    // clear url cache
+    for (const k in objUrlCache) { URL.revokeObjectURL(objUrlCache[k]); delete objUrlCache[k]; }
+    renderAll();
+    toast('✅ Επαναφορά ολοκληρώθηκε!');
+  } catch(e) {
+    toast('Σφάλμα: '+e.message,'#ef4444');
+  }
+  event.target.value='';
+}
+
+// ══════════════════════════════════════════════════════════
+//  ΣΤΟΧΟΙ (waterfall) — γεμίζουν με σειρά από το συνολικό P&L
+// ══════════════════════════════════════════════════════════
+function renderGoals() {
+  const listEl = document.getElementById('goalsList');
+  const sumEl = document.getElementById('goalsSummary');
+  const pnl = Math.max(0, totalPnL());   // αρνητικό P&L => 0 πρόοδος
+  let remaining = pnl;
+
+  if (!state.goals.length) {
+    listEl.innerHTML = '<div class="card" style="text-align:center;color:#475569;font-size:14px;">Δεν υπάρχουν στόχοι. Πρόσθεσε έναν!</div>';
+    sumEl.textContent = '';
+    return;
+  }
+
+  const totalTarget = state.goals.reduce((s,g)=>s+(g.target||0),0);
+  sumEl.innerHTML = `Διαθέσιμο P&L: <span class="mono gold" style="font-weight:700;">${eur(pnl)}</span> &nbsp;·&nbsp; Σύνολο στόχων: <span class="mono">${eur(totalTarget)}</span>`;
+
+  listEl.innerHTML = state.goals.map((g,i)=>{
+    const target = g.target||0;
+    const filled = Math.min(remaining, target);   // πόσα πέφτουν σε αυτόν τον στόχο
+    remaining = Math.max(0, remaining - target);  // ό,τι περισσεύει πάει στον επόμενο
+    const pct = target>0 ? (filled/target)*100 : 0;
+    const done = filled >= target && target>0;
+    return `
+      <div class="goal-card" onclick="openEditGoal('${g.id}')" style="cursor:pointer;">
+        <div class="goal-head">
+          <span class="goal-emoji">${g.emoji||'🎯'}</span>
+          <span class="goal-title">${g.label}</span>
+          ${done ? '<span class="goal-done-badge">✓ ΟΛΟΚΛΗΡΩΘΗΚΕ</span>'
+                 : `<span class="goal-pct" style="color:${g.color};">${pct.toFixed(1)}%</span>`}
+        </div>
+        <div class="goal-bar-bg">
+          <div class="goal-bar" style="width:${pct}%;background:${done?'#10b981':g.color};"></div>
+        </div>
+        <div class="goal-nums">
+          <span>${eur(filled)}</span>
+          <span>${eur(target)}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Modal στόχου
+let editingGoalId = null;
+function selectGoalEmoji(btn, emoji) {
+  newGoalEmoji = emoji;
+  document.getElementById('newGoalEmoji').value = '';
+  document.querySelectorAll('#goalEmojiPicker .emoji-btn').forEach(b=>b.style.outline='');
+  btn.style.outline = '2px solid #f59e0b';
+}
+function openAddGoal() {
+  editingGoalId = null;
+  newGoalEmoji = '🎯';
+  document.getElementById('goalModalTitle').textContent = '🎯 Νέος Στόχος';
+  document.getElementById('newGoalEmoji').value = '';
+  document.getElementById('newGoalLabel').value = '';
+  document.getElementById('newGoalTarget').value = '';
+  document.getElementById('goalDeleteBtn').style.display = 'none';
+  document.querySelectorAll('#goalEmojiPicker .emoji-btn').forEach(b=>b.style.outline='');
+  openModal('goalEditModal');
+}
+function openEditGoal(id) {
+  const g = state.goals.find(x=>x.id===id);
+  if (!g) return;
+  editingGoalId = id;
+  newGoalEmoji = g.emoji||'🎯';
+  document.getElementById('goalModalTitle').textContent = 'Επεξεργασία Στόχου';
+  document.getElementById('newGoalEmoji').value = '';
+  document.getElementById('newGoalLabel').value = g.label;
+  document.getElementById('newGoalTarget').value = g.target;
+  document.getElementById('goalDeleteBtn').style.display = '';
+  document.querySelectorAll('#goalEmojiPicker .emoji-btn').forEach(b=>{
+    b.style.outline = (b.textContent===newGoalEmoji) ? '2px solid #f59e0b' : '';
+  });
+  openModal('goalEditModal');
+}
+function saveGoalItem() {
+  const emojiInput = document.getElementById('newGoalEmoji').value.trim();
+  const emoji = emojiInput || newGoalEmoji;
+  const label = document.getElementById('newGoalLabel').value.trim();
+  const target = parseFloat(document.getElementById('newGoalTarget').value);
+  if (!label) { toast('Βάλε όνομα!','#ef4444'); return; }
+  if (isNaN(target)||target<=0) { toast('Βάλε έγκυρο ποσό!','#ef4444'); return; }
+  if (editingGoalId) {
+    const g = state.goals.find(x=>x.id===editingGoalId);
+    if (g) { g.label=label; g.emoji=emoji; g.target=target; }
+  } else {
+    const used = state.goals.map(g=>g.color);
+    const color = COLORS.find(c=>!used.includes(c)) || COLORS[state.goals.length % COLORS.length];
+    state.goals.push({ id:'g'+Date.now(), label, emoji, target, color });
+  }
+  save(); closeModals(); renderGoals();
+  toast('✅ Στόχος αποθηκεύτηκε!');
+}
+function deleteGoalItem() {
+  if (!editingGoalId) return;
+  if (!confirm('Διαγραφή στόχου;')) return;
+  state.goals = state.goals.filter(g=>g.id!==editingGoalId);
+  save(); closeModals(); renderGoals();
+  toast('Στόχος διαγράφηκε','#ef4444');
+}
+
+// ══════════════════════════════════════════════════════════
+//  ΠΡΟΒΛΕΨΕΙΣ — μέσοι όροι & προβολή μέχρι ημερομηνία
+// ══════════════════════════════════════════════════════════
+function tradeEntries() { return state.entries.filter(e=>e.type==='trade'); }
+
+function forecastStats() {
+  const trades = tradeEntries();
+  if (!trades.length) return null;
+  const pnl = tradeSum();  // καθαρά κέρδη trading (η βάση για τον ρυθμό)
+  // Ημερομηνίες πρώτης & τελευταίας εγγραφής
+  const dates = trades.map(e=>e.date).sort();
+  const first = new Date(dates[0]+'T12:00:00');
+  const last  = new Date(dates[dates.length-1]+'T12:00:00');
+  const today = new Date(); today.setHours(12,0,0,0);
+  // Ημερολογιακές μέρες που "τρέχει" ο λογαριασμός (min 1)
+  const spanDays = Math.max(1, Math.round((today - first)/86400000) + 1);
+  // Μοναδικές μέρες με trade
+  const tradingDays = new Set(trades.map(e=>e.date)).size;
+  // Μοναδικοί μήνες με trade
+  const months = new Set(trades.map(e=>e.date.slice(0,7))).size || 1;
+
+  return {
+    pnl,
+    perCalendarDay: pnl / spanDays,   // μέσος όρος ανά ημερολογιακή μέρα
+    perTradingDay:  pnl / tradingDays, // μέσος όρος ανά μέρα που έκανες trade
+    perMonth:       pnl / months,      // μέσος όρος ανά μήνα
+    spanDays, tradingDays, months, first, today
+  };
+}
+
+function renderForecast() {
+  const s = forecastStats();
+  const avgEl = document.getElementById('forecastAverages');
+  const resEl = document.getElementById('forecastResult');
+
+  if (!s) {
+    avgEl.innerHTML = '<div style="text-align:center;color:#475569;font-size:14px;">Χρειάζονται εγγραφές trades για προβλέψεις.</div>';
+    resEl.innerHTML = '';
+    return;
+  }
+
+  // Μέσοι όροι
+  avgEl.innerHTML = [
+    ['📆 Μέσος όρος / ημέρα (ημερολογιακά)', s.perCalendarDay],
+    ['📈 Μέσος όρος / μέρα trading',          s.perTradingDay],
+    ['🗓️ Μέσος όρος / μήνα',                  s.perMonth],
+  ].map(([k,v])=>`
+    <div class="stat-row">
+      <span style="color:#64748b;font-size:13px;">${k}</span>
+      <span class="mono" style="font-weight:700;font-size:14px;color:${v>=0?'#10b981':'#ef4444'};">${(v>0?'+':'')+eur(v)}</span>
+    </div>`).join('') +
+    `<div class="stat-row"><span style="color:#64748b;font-size:13px;">⏱️ Ενεργό διάστημα</span>
+      <span class="mono" style="font-weight:700;font-size:14px;">${s.spanDays} μέρες / ${s.months} μήνες</span></div>`;
+
+  // Πρόβλεψη μέχρι ημερομηνία
+  const dateVal = document.getElementById('forecastDate').value;
+  if (!dateVal) {
+    resEl.innerHTML = '<div style="text-align:center;color:#64748b;font-size:13px;">Διάλεξε ημερομηνία για να δεις πρόβλεψη.</div>';
+    return;
+  }
+  const target = new Date(dateVal+'T12:00:00');
+  const daysAhead = Math.round((target - s.today)/86400000);
+  if (daysAhead <= 0) {
+    resEl.innerHTML = '<div class="warn" style="text-align:center;">Διάλεξε μελλοντική ημερομηνία.</div>';
+    return;
+  }
+
+  // Βάση: μέσος όρος ανά ημερολογιακή μέρα × μέρες μπροστά = επιπλέον προβλεπόμενο κέρδος
+  const base = s.perCalendarDay * daysAhead;
+  const scenarios = [
+    { label:'Συντηρητικό', mult:0.7, color:'#ef4444', emoji:'🐢' },
+    { label:'Βασικό',      mult:1.0, color:'#f59e0b', emoji:'🎯' },
+    { label:'Αισιόδοξο',   mult:1.3, color:'#10b981', emoji:'🚀' },
+  ];
+
+  const dateStr = target.toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'});
+  resEl.innerHTML =
+    `<div style="text-align:center;color:#94a3b8;font-size:13px;margin-bottom:4px;">Σε <b style="color:#f1f5f9;">${daysAhead}</b> μέρες (έως ${dateStr})</div>
+     <div style="text-align:center;color:#64748b;font-size:12px;margin-bottom:14px;">Τρέχον P&L: <span class="mono">${eur(s.pnl)}</span></div>` +
+    scenarios.map(sc=>{
+      const projectedGain = base * sc.mult;
+      const projectedTotal = s.pnl + projectedGain;
+      return `
+      <div style="background:#0d1520;border:1px solid ${sc.color}44;border-radius:12px;padding:12px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:13px;font-weight:600;color:${sc.color};">${sc.emoji} ${sc.label}</span>
+          <span class="mono" style="font-size:18px;font-weight:700;color:${sc.color};">${eur(projectedTotal)}</span>
+        </div>
+        <div style="font-size:11px;color:#64748b;">επιπλέον ~${(projectedGain>0?'+':'')+eur(projectedGain)} από σήμερα</div>
+      </div>`;
+    }).join('') +
+    `<div class="info" style="text-align:center;margin-top:4px;">Το εύρος δείχνει πιθανά σενάρια, όχι εγγύηση.</div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+//  ΚΑΝΟΝΕΣ (rules) — με προαιρετική εικόνα (IndexedDB, πρόθεμα rule_)
+// ══════════════════════════════════════════════════════════
+let pendingRuleImgBlob = null;
+let editingRuleId = null;
+
+async function handleRuleImgPick(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    toast('Επεξεργασία εικόνας…','#3b82f6');
+    pendingRuleImgBlob = await compressImage(file);
+    if (!pendingRuleImgBlob) { toast('Δεν διαβάστηκε η εικόνα','#ef4444'); return; }
+    const url = URL.createObjectURL(pendingRuleImgBlob);
+    const prev = document.getElementById('ruleImgPreview');
+    prev.src = url; prev.style.display = 'block';
+    document.getElementById('ruleImgBox').innerHTML = '✅ Εικόνα έτοιμη — άλλαξέ την πατώντας ξανά';
+    toast('✅ Εικόνα φορτώθηκε');
+  } catch(err) { toast('Σφάλμα εικόνας','#ef4444'); }
+}
+
+function resetRuleForm() {
+  document.getElementById('ruleInput').value = '';
+  pendingRuleImgBlob = null;
+  editingRuleId = null;
+  const prev = document.getElementById('ruleImgPreview');
+  prev.style.display = 'none'; prev.src = '';
+  document.getElementById('ruleImgInput').value = '';
+  document.getElementById('ruleImgBox').innerHTML = '📷 Πρόσθεσε εικόνα (προαιρετικά)';
+  document.querySelector('#view-rules .btn-gold').textContent = '+ Προσθήκη κανόνα';
+  document.querySelector('#view-rules .label').textContent = 'ΝΕΟΣ ΚΑΝΟΝΑΣ';
+}
+
+async function addRule() {
+  const text = document.getElementById('ruleInput').value.trim();
+  if (!text) { toast('Γράψε τον κανόνα!','#ef4444'); return; }
+
+  if (editingRuleId) {
+    // Επεξεργασία υπάρχοντος
+    const r = state.rules.find(x=>x.id===editingRuleId);
+    if (r) {
+      r.text = text;
+      if (pendingRuleImgBlob) {
+        if (!idb) { try { await openImgDB(); } catch(e){} }
+        try { await idbPut('rule_'+r.id, pendingRuleImgBlob); r.hasImg = true; } catch(e){}
+        if (objUrlCache['rule_'+r.id]) { URL.revokeObjectURL(objUrlCache['rule_'+r.id]); delete objUrlCache['rule_'+r.id]; }
+      }
+    }
+    toast('✅ Κανόνας ενημερώθηκε!');
+  } else {
+    // Νέος
+    const id = Date.now();
+    let hasImg = false;
+    if (pendingRuleImgBlob) {
+      if (!idb) { try { await openImgDB(); } catch(e){} }
+      try { await idbPut('rule_'+id, pendingRuleImgBlob); hasImg = true; } catch(e){}
+    }
+    state.rules.push({ id, text, hasImg });
+    toast('✅ Κανόνας προστέθηκε!');
+  }
+  save(); resetRuleForm(); renderRules();
+}
+
+function editRule(id) {
+  const r = state.rules.find(x=>x.id===id);
+  if (!r) return;
+  editingRuleId = id;
+  document.getElementById('ruleInput').value = r.text;
+  document.querySelector('#view-rules .btn-gold').textContent = '💾 Αποθήκευση αλλαγών';
+  document.querySelector('#view-rules .label').textContent = 'ΕΠΕΞΕΡΓΑΣΙΑ ΚΑΝΟΝΑ';
+  // reset image preview (κρατά την παλιά αν δεν αλλάξει)
+  pendingRuleImgBlob = null;
+  document.getElementById('ruleImgPreview').style.display = 'none';
+  document.getElementById('ruleImgBox').innerHTML = r.hasImg ? '📷 Άλλαξε εικόνα (υπάρχει ήδη)' : '📷 Πρόσθεσε εικόνα (προαιρετικά)';
+  window.scrollTo(0,0);
+}
+
+async function deleteRule(id) {
+  if (!confirm('Διαγραφή κανόνα;')) return;
+  const r = state.rules.find(x=>x.id===id);
+  if (r && r.hasImg) {
+    await idbDelete('rule_'+id);
+    if (objUrlCache['rule_'+id]) { URL.revokeObjectURL(objUrlCache['rule_'+id]); delete objUrlCache['rule_'+id]; }
+  }
+  state.rules = state.rules.filter(x=>x.id!==id);
+  save(); renderRules();
+  toast('Κανόνας διαγράφηκε','#ef4444');
+}
+
+async function openRuleImg(id) {
+  const r = state.rules.find(x=>x.id===id);
+  if (!r || !r.hasImg) return;
+  const url = await getImgUrl('rule_'+id);
+  if (!url) { toast('Η εικόνα δεν βρέθηκε','#ef4444'); return; }
+  currentViewerId = null;  // δεν είναι entry
+  document.getElementById('imgViewerImg').src = url;
+  document.getElementById('imgViewerInfo').innerHTML =
+    `<span style="color:#f1f5f9;font-size:14px;">${r.text}</span>`;
+  // κρύψε το κουμπί διαγραφής εικόνας (αφορά entries)
+  const delBtn = document.querySelector('#imgViewer .btn-ghost');
+  if (delBtn) delBtn.style.display = 'none';
+  document.getElementById('imgViewer').classList.add('open');
+}
+
+function renderRules() {
+  const el = document.getElementById('rulesList');
+  if (!state.rules || !state.rules.length) {
+    el.innerHTML = '<div class="rules-empty">Δεν υπάρχουν κανόνες ακόμα.<br>Πρόσθεσε τον πρώτο σου!</div>';
+    return;
+  }
+  el.innerHTML = state.rules.map((r,i)=>`
+    <div class="rule-card">
+      <div class="rule-num">${i+1}.</div>
+      <div class="rule-body">
+        <div class="rule-text">${escapeHtml(r.text)}</div>
+        ${r.hasImg ? `<img class="rule-thumb" id="rimg_${r.id}" onclick="openRuleImg(${r.id})">` : ''}
+      </div>
+      <div class="rule-actions">
+        <button class="rule-btn" onclick="editRule(${r.id})" title="Επεξεργασία">✏️</button>
+        <button class="rule-btn" onclick="deleteRule(${r.id})" title="Διαγραφή">🗑️</button>
+      </div>
+    </div>`).join('');
+  // Load rule images async
+  state.rules.filter(r=>r.hasImg).forEach(async r=>{
+    const url = await getImgUrl('rule_'+r.id);
+    const img = document.getElementById('rimg_'+r.id);
+    if (img && url) img.src = url;
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ══════════════════════════════════════════════════════════
+//  CHECKLIST — κριτήρια πριν το trade, τικ που πρασινίζουν
+// ══════════════════════════════════════════════════════════
+function addCheck() {
+  const input = document.getElementById('checkInput');
+  const text = input.value.trim();
+  if (!text) { toast('Γράψε κριτήριο!','#ef4444'); return; }
+  state.checklist.push({ id: Date.now(), text, done: false });
+  input.value = '';
+  save(); renderChecklist();
+}
+function toggleCheck(id) {
+  const c = state.checklist.find(x=>x.id===id);
+  if (c) { c.done = !c.done; save(); renderChecklist(); }
+}
+function deleteCheck(id, ev) {
+  if (ev) ev.stopPropagation();
+  state.checklist = state.checklist.filter(x=>x.id!==id);
+  save(); renderChecklist();
+}
+function resetChecklist() {
+  state.checklist.forEach(c=>c.done=false);
+  save(); renderChecklist();
+  toast('🔄 Καθαρίστηκε — έτοιμο για νέο trade','#3b82f6');
+}
+function renderChecklist() {
+  const list = document.getElementById('checklistList');
+  const banner = document.getElementById('checklistBanner');
+
+  if (!state.checklist.length) {
+    list.innerHTML = '<div class="rules-empty">Δεν υπάρχουν κριτήρια ακόμα.<br>Πρόσθεσε τα κριτήριά σου για κάθε trade!</div>';
+    banner.innerHTML = '';
+    return;
+  }
+
+  const done = state.checklist.filter(c=>c.done).length;
+  const total = state.checklist.length;
+  const allDone = done === total;
+
+  // Banner
+  if (allDone) {
+    banner.innerHTML = `<div class="check-banner go">🚀 ΠΑΡΕ TRADE!<div class="check-progress" style="color:#d1fae5;">Όλα τα κριτήρια πληρούνται (${done}/${total})</div></div>`;
+  } else {
+    banner.innerHTML = `<div class="check-banner wait">⏳ Λείπουν ${total-done} κριτήρια<div class="check-progress">${done}/${total} ΟΚ</div></div>`;
+  }
+
+  // List
+  list.innerHTML = state.checklist.map(c=>`
+    <div class="check-item ${c.done?'checked':''}" onclick="toggleCheck(${c.id})">
+      <div class="check-box">${c.done?'✓':''}</div>
+      <div class="check-text">${escapeHtml(c.text)}</div>
+      <button class="check-del" onclick="deleteCheck(${c.id},event)">×</button>
+    </div>`).join('');
+}
+
+
+// ── ΜΕΤΑΤΡΟΠΗ € ⇄ $ ──
+let fxLast = 'usd';
+function fxNum(id) { const v = parseFloat(String(document.getElementById(id).value).replace(/\s/g,'').replace(',','.')); return isNaN(v) ? null : v; }
+function fxType(which) { fxLast = which; fxCompute(); }
+function fxCompute() {
+  const r = fxRate(); if (!r) return;
+  const from = fxLast, to = from==='usd' ? 'eur' : 'usd';
+  const v = fxNum(from==='usd' ? 'fxUsd' : 'fxEur');
+  const out = document.getElementById(to==='usd' ? 'fxUsd' : 'fxEur');
+  out.value = v===null ? '' : (from==='usd' ? v*r : v/r).toFixed(2).replace('.',',');
+}
+function renderFx() {
+  if (!document.getElementById('fxBig')) return;
+  const r = fxRate();
+  if (!r) { document.getElementById('fxBig').textContent='—'; document.getElementById('fxSmall').textContent='Χρειάζεται internet για την ισοτιμία'; document.getElementById('fxTable').innerHTML=''; return; }
+  const f4 = n => new Intl.NumberFormat('el-GR',{minimumFractionDigits:4,maximumFractionDigits:4}).format(n);
+  const when = state.fx.at ? new Date(state.fx.at).toLocaleString('el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+  document.getElementById('fxBig').textContent = `1 $ = ${f4(r)} €`;
+  document.getElementById('fxSmall').innerHTML = `1 € = ${f4(1/r)} $<br>ενημέρωση: ${when}${state.fx.src && state.fx.src!=='live' ? ' · '+state.fx.src : ''}`;
+  const amts = [10, 50, 100, 500, 1000, 5000, 10000];
+  const n0 = n => new Intl.NumberFormat('el-GR').format(n);
+  document.getElementById('fxTable').innerHTML = `<table class="wtable">
+    <tr><th>Ποσό</th><th>$ → €</th><th>€ → $</th></tr>
+    ${amts.map(n=>`<tr><td class="mono" style="color:#94a3b8;">${n0(n)}</td><td class="mono" style="color:#f1f5f9;">${eur(n*r)}</td><td class="mono" style="color:#f1f5f9;">${usd(n/r)}</td></tr>`).join('')}
+  </table>`;
+  fxCompute();
+}
+setInterval(()=>{ if (currentView==='fx' && !document.hidden) fetchFx(false); }, 60000);
+
+function renderAll() {
+  buildNav();
+  renderFx();
+  renderWealth();
+  renderTabOrder();
+  renderDashboard();
+  renderLog();
+  renderMonth();
+  renderSettings();
+  renderGallery();
+  renderGoals();
+  renderForecast();
+  renderRules();
+  renderChecklist();
+}
+
+// ══════════════════════════════════════════════════════════
+//  TABS — σειρά & απόκρυψη
+// ══════════════════════════════════════════════════════════
+function buildNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = state.tabOrder.filter(id=>!state.tabHidden.includes(id)).map(id=>{
+    const t = TABS.find(x=>x.id===id);
+    return `<button class="nav-btn ${id===currentView?'active':''}" onclick="switchView('${id}')">
+      <span class="nav-icon">${t.icon}</span><span>${t.label}</span></button>`;
+  }).join('');
+}
+function switchView(id) {
+  const t = TABS.find(x=>x.id===id);
+  if (!t) return;
+  currentView = id;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  document.getElementById('viewTitle').textContent = t.title;
+  renderAll(); window.scrollTo(0,0);
+  if (id==='wealth') fetchPrices(false);
+  if (id==='fx') fetchFx(false);
+}
+function moveTab(id, dir) {
+  const arr = state.tabOrder, i = arr.indexOf(id), j = i+dir;
+  if (j<0 || j>=arr.length) return;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  save(); buildNav(); renderTabOrder();
+}
+function toggleTab(id) {
+  if (id==='settings') return;
+  if (state.tabHidden.includes(id)) state.tabHidden = state.tabHidden.filter(x=>x!==id);
+  else state.tabHidden.push(id);
+  save(); buildNav(); renderTabOrder();
+}
+function renderTabOrder() {
+  const el = document.getElementById('tabOrderList');
+  if (!el) return;
+  const last = state.tabOrder.length-1;
+  el.innerHTML = state.tabOrder.map((id,i)=>{
+    const t = TABS.find(x=>x.id===id);
+    const hidden = state.tabHidden.includes(id);
+    return `<div class="tab-row ${hidden?'hidden-tab':''}">
+      <span style="font-size:20px;width:28px;text-align:center;">${t.icon}</span>
+      <span style="flex:1;font-size:14px;color:#e2e8f0;">${t.title}</span>
+      <button class="mini-btn" onclick="moveTab('${id}',-1)" ${i===0?'disabled':''}>↑</button>
+      <button class="mini-btn" onclick="moveTab('${id}',1)" ${i===last?'disabled':''}>↓</button>
+      ${id==='settings' ? '<span style="width:36px;display:inline-block;"></span>'
+        : `<button class="mini-btn" onclick="toggleTab('${id}')">${hidden?'🙈':'👁️'}</button>`}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  ΕΠΕΞΕΡΓΑΣΙΑ ΕΓΓΡΑΦΗΣ (π.χ. αλλαγή τύπου παλιάς ανάληψης)
+// ══════════════════════════════════════════════════════════
+let editingEntryId = null, editEntryType = 'trade';
+function selectEditType(t) {
+  editEntryType = t;
+  ENTRY_TYPES.forEach(k=>document.getElementById('eType-'+k).classList.toggle('sel', k===t));
+}
+function openEditEntry(id) {
+  const e = state.entries.find(x=>x.id===id);
+  if (!e) return;
+  editingEntryId = id;
+  document.getElementById('eDate').value = e.date;
+  document.getElementById('eAmount').value = e.amount;
+  document.getElementById('eNote').value = e.note || '';
+  selectEditType(e.type || 'trade');
+  openModal('entryModal');
+}
+function saveEntryEdit() {
+  const e = state.entries.find(x=>x.id===editingEntryId);
+  if (!e) return;
+  let amt = parseFloat(String(document.getElementById('eAmount').value).replace(',','.'));
+  if (isNaN(amt)) { toast('Βάλε ποσό!','#ef4444'); return; }
+  if (editEntryType !== 'trade') amt = Math.abs(amt);
+  e.type = editEntryType;
+  e.amount = amt;
+  e.date = document.getElementById('eDate').value || e.date;
+  e.note = document.getElementById('eNote').value.trim();
+  save(); closeModals(); renderAll();
+  toast('✅ Εγγραφή ενημερώθηκε');
+}
+
+// ══════════════════════════════════════════════════════════
+//  ΠΕΡΙΟΥΣΙΑ — χρηματιστήριο (αυτόματα) + BTC + χρυσός + χειροκίνητα
+// ══════════════════════════════════════════════════════════
+const PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pax-gold&vs_currencies=eur&include_24hr_change=true';
+const CATS = {
+  broker: { label:'Χρηματιστήριο', short:'Χρημ.',  emoji:'📈', color:'#10b981' },
+  btc:    { label:'Bitcoin',       short:'BTC',    emoji:'₿',  color:'#f7931a' },
+  gold:   { label:'Χρυσός',        short:'Χρυσός', emoji:'🥇', color:'#eab308' },
+  manual: { label:'Μετρητά / Λοιπά', short:'Μετρ.', emoji:'💶', color:'#3b82f6' },
+};
+const CAT_ORDER = ['broker','btc','gold','manual'];
+const OZ_G = 31.1034768;   // γραμμάρια ανά ουγγιά (troy oz)
+
+const FX_URL  = 'https://api.coingecko.com/api/v3/exchange_rates';
+const FX_URL2 = 'https://api.frankfurter.app/latest?from=USD&to=EUR';
+async function fetchFx(manual) {
+  let rate = null, src = '';
+  try {
+    const r = await fetch(FX_URL, { cache:'no-store' });
+    if (r.ok) { const d = await r.json(); const u = d.rates && d.rates.usd && d.rates.usd.value, e = d.rates && d.rates.eur && d.rates.eur.value;
+      if (u>0 && e>0) { rate = e/u; src = 'live'; } }
+  } catch(e) {}
+  if (!rate) {
+    try { const r = await fetch(FX_URL2, { cache:'no-store' });
+      if (r.ok) { const d = await r.json(); if (d.rates && d.rates.EUR>0) { rate = d.rates.EUR; src = 'ΕΚΤ (ημερήσια)'; } } } catch(e) {}
+  }
+  if (rate) {
+    state.fx = { eurPerUsd: rate, at: new Date().toISOString(), src };
+    save();
+    renderDashboard(); renderFx();
+    if (currentView==='wealth') renderWealth(); else snapshotWealth();
+    if (manual) toast('✅ Ισοτιμία ενημερώθηκε');
+  } else if (manual) toast('Δεν πιάστηκε ισοτιμία — χρησιμοποιείται η τελευταία','#ef4444');
+}
+
+async function fetchPrices(manual) {
+  fetchFx(false);
+  try {
+    if (manual) toast('Ενημέρωση τιμών…','#3b82f6');
+    const r = await fetch(PRICE_URL, { cache:'no-store' });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    const btc  = d.bitcoin && d.bitcoin.eur;
+    const gold = d['pax-gold'] && d['pax-gold'].eur;   // PAXG = 1 ουγγιά χρυσού
+    if (!btc && !gold) throw new Error('κενή απάντηση');
+    const btcChg  = d.bitcoin && d.bitcoin.eur_24h_change;
+    const goldChg = d['pax-gold'] && d['pax-gold'].eur_24h_change;
+    state.prices = {
+      btc: btc || state.prices.btc, goldOz: gold || state.prices.goldOz,
+      btcChg: (typeof btcChg==='number') ? btcChg : (btc ? null : state.prices.btcChg),
+      goldChg: (typeof goldChg==='number') ? goldChg : (gold ? null : state.prices.goldChg),
+      at: new Date().toISOString()
+    };
+    save();
+    if (currentView==='wealth') renderWealth(); else snapshotWealth();
+    if (manual) toast('✅ Τιμές ενημερώθηκαν');
+  } catch(e) {
+    if (manual) toast('Δεν πιάστηκαν τιμές — χρησιμοποιείται η τελευταία','#ef4444');
+  }
+}
+
+function unitLabel(a) {
+  if (a.kind==='btc') return 'BTC';
+  if (a.kind==='broker') return '$';
+  if (a.kind==='manual') return a.cur==='usd' ? '$' : '€';
+  if (a.kind==='gold') return a.unit==='oz' ? 'oz' : 'γρ.';
+  return '€';
+}
+function assetPrice(a) {   // € ανά μονάδα
+  if (a.kind==='btc'  && state.prices.btc)    return { p: state.prices.btc, src:'live' };
+  if (a.kind==='gold' && state.prices.goldOz) return { p: a.unit==='oz' ? state.prices.goldOz : state.prices.goldOz/OZ_G, src:'live' };
+  if (a.manualPrice > 0) return { p: a.manualPrice, src:'manual' };
+  return { p: 0, src:'none' };
+}
+function assetQty(a)   { return a.kind==='broker' ? inAccount() : (a.qty || 0); }
+function needsFx(a) { return a.kind==='broker' || (a.kind==='manual' && a.cur==='usd'); }
+function assetValue(a) {   // πάντα σε €
+  if (a.kind==='broker') return toEur(inAccount()) || 0;
+  if (a.kind==='manual') return a.cur==='usd' ? (toEur(a.qty||0) || 0) : (a.qty || 0);
+  return (a.qty || 0) * assetPrice(a).p;
+}
+function fmtQty(a, q) {
+  if (a.kind==='broker') return usd(q);
+  if (a.kind==='manual') return a.cur==='usd' ? usd(q) : eur(q);
+  const dec = a.kind==='btc' ? 8 : (a.unit==='oz' ? 3 : 2);
+  return new Intl.NumberFormat('el-GR', { maximumFractionDigits: dec }).format(q) + ' ' + unitLabel(a);
+}
+function wealthTotal() { return state.assets.reduce((s,a)=>s+assetValue(a), 0); }
+
+// Μεταβολή «σήμερα»: BTC/χρυσός = 24ω από CoinGecko, χρηματιστήριο = P&L σημερινών trades
+function assetDayPct(a) {
+  if (a.kind==='btc')  return assetPrice(a).src==='live' && typeof state.prices.btcChg==='number'  ? state.prices.btcChg  : null;
+  if (a.kind==='gold') return assetPrice(a).src==='live' && typeof state.prices.goldChg==='number' ? state.prices.goldChg : null;
+  return null;
+}
+function assetDayDiff(a) {
+  if (a.kind==='broker') return toEur(todayPnL()) || 0;
+  const pct = assetDayPct(a);
+  if (pct===null) return 0;
+  const v = assetValue(a);
+  return v - v/(1+pct/100);
+}
+function pctOf(diff, now) { const base = now - diff; return base > 0 ? diff/base*100 : null; }
+function fmtPct(p) { return (p>0?'+':'') + new Intl.NumberFormat('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(p) + '%'; }
+function dayChip(diff, pct, showEur) {
+  const cls = Math.abs(diff) < 0.005 ? 'flat' : (diff > 0 ? 'up' : 'down');
+  const arrow = cls==='up' ? '▲ ' : cls==='down' ? '▼ ' : '';
+  const parts = [];
+  if (showEur) parts.push((diff>0?'+':'') + eur(diff));
+  if (pct!==null && pct!==undefined) parts.push(fmtPct(pct));
+  if (!parts.length) parts.push('—');
+  return `<span class="day-chip ${cls}">${arrow}${parts.join(' · ')}</span>`;
+}
+function dColor(x) { return x>0.005 ? '#10b981' : x<-0.005 ? '#ef4444' : '#64748b'; }
+function signedEur(x) { return (x>0?'+':'') + eur(x); }
+
+// Κατηγορία μιας πηγής μέσα σε snapshot (και για πηγές που διαγράφηκαν)
+function snapKind(snap, id) {
+  if (snap.kinds && snap.kinds[id]) return snap.kinds[id];
+  const a = state.assets.find(x=>x.id===id);
+  if (a) return a.kind;
+  return id==='broker' ? 'broker' : 'manual';
+}
+function snapByCat(snap) {
+  const out = {}; CAT_ORDER.forEach(k=>out[k]=0);
+  Object.entries(snap.items || {}).forEach(([id,v])=>{ const k = snapKind(snap,id); out[k] = (out[k]||0) + (v||0); });
+  return out;
+}
+
+// Λίστα πηγών ταξινομημένη: όποια έχει τα περισσότερα χρήματα πάει πρώτη
+function sortedAssets() {
+  return state.assets.slice().sort((x,y)=>assetValue(y)-assetValue(x));
+}
+function shortLabel(t) { return t.length > 10 ? t.slice(0,9)+'…' : t; }
+
+function renderWealthCats(total) {
+  const rows = sortedAssets().map(a=>{
+    const v = assetValue(a), dd = assetDayDiff(a);
+    const p = a.kind==='broker' ? pctOf(dd,v) : assetDayPct(a);
+    const hasDay = a.kind==='broker' || p!==null;
+    return { a, v, dd, p, hasDay };
+  });
+  const bar = total>0 ? rows.filter(r=>r.v>0).map(r=>`<div style="width:${r.v/total*100}%;background:${r.a.color};"></div>`).join('') : '';
+  const totDD = rows.reduce((s,r)=>s+r.dd,0);
+  document.getElementById('wealthCats').innerHTML = `
+    ${bar ? `<div class="alloc-stack">${bar}</div>` : ''}
+    <table class="wtable wcats">
+      <tr><th>Πηγή</th><th>Ποσό</th><th>%</th><th>Σήμερα</th></tr>
+      ${rows.map(r=>`<tr onclick="openEditAsset('${r.a.id}')" style="cursor:pointer;">
+        <td><span class="dot" style="background:${r.a.color};"></span>${r.a.emoji} ${escapeHtml(r.a.label)}</td>
+        <td class="mono" style="color:#f1f5f9;font-weight:700;">${eur(r.v)}</td>
+        <td class="mono" style="color:#94a3b8;">${total>0?(r.v/total*100).toFixed(1):'0.0'}%</td>
+        <td class="d" style="color:${dColor(r.dd)};">${r.hasDay ? (r.p!==null ? fmtPct(r.p) : signedEur(r.dd)) : '—'}</td>
+      </tr>`).join('')}
+      <tr class="tot">
+        <td>Σύνολο</td>
+        <td class="mono gold">${eur(total)}</td>
+        <td class="mono" style="color:#94a3b8;">100%</td>
+        <td class="d" style="color:${dColor(totDD)};">${(()=>{const p=pctOf(totDD,total);return p!==null?fmtPct(p):signedEur(totDD);})()}</td>
+      </tr>
+    </table>`;
+}
+
+// Στήλες για τον μηνιαίο πίνακα: κάθε τωρινή πηγή + «Άλλες» για όσες διαγράφηκαν
+function monthCols(ms) {
+  const cur = sortedAssets().map(a=>({ id:a.id, label:a.label, color:a.color, ids:[a.id] }));
+  const known = new Set(state.assets.map(a=>a.id));
+  const gone = new Set();
+  ms.forEach(m=>Object.entries(state.wealthSnaps[m].items||{}).forEach(([id,v])=>{ if (!known.has(id) && Math.abs(v||0)>0.005) gone.add(id); }));
+  if (gone.size) cur.push({ id:'_gone', label:'Άλλες', color:'#475569', ids:[...gone] });
+  return cur;
+}
+function colVal(snap, col) { return col.ids.reduce((s,id)=>s+((snap.items||{})[id]||0),0); }
+
+function renderWealthMonths() {
+  const sec = document.getElementById('wealthMonthsSection');
+  const box = document.getElementById('wealthMonths');
+  const ms = Object.keys(state.wealthSnaps).sort();
+  if (!ms.length) { sec.style.display='none'; return; }
+  sec.style.display='';
+  const cols = monthCols(ms);
+  const cell = (v, d) => `<div class="mono" style="color:#f1f5f9;">${eur(v)}</div>${d===null?'':`<div class="d" style="color:${dColor(d)};">${signedEur(d)}</div>`}`;
+  const short = m => new Date(m+'-01').toLocaleDateString('el-GR',{month:'short',year:'2-digit'});
+  box.innerHTML = `<table class="wtable">
+    <tr><th>Μήνας</th>${cols.map(c=>`<th><span class="dot" style="background:${c.color};"></span>${escapeHtml(shortLabel(c.label))}</th>`).join('')}<th>Σύνολο</th></tr>
+    ${ms.slice().reverse().map(m=>{
+      const i = ms.indexOf(m), prev = i>0 ? ms[i-1] : null;
+      const S = state.wealthSnaps[m], P = prev ? state.wealthSnaps[prev] : null;
+      const t = S.total, pt = P ? P.total : null;
+      const tp = P && pt>0 ? (t-pt)/pt*100 : null;
+      return `<tr>
+        <td style="color:#94a3b8;text-transform:capitalize;">${short(m)}</td>
+        ${cols.map(c=>`<td>${cell(colVal(S,c), P ? colVal(S,c)-colVal(P,c) : null)}</td>`).join('')}
+        <td><div class="mono gold" style="font-weight:700;">${eur(t)}</div>${P?`<div class="d" style="color:${dColor(t-pt)};">${signedEur(t-pt)}${tp!==null?` (${fmtPct(tp)})`:''}</div>`:''}</td>
+      </tr>`;
+    }).join('')}
+  </table>`;
+}
+
+function renderWealthStats(total) {
+  const sec = document.getElementById('wealthStatsSection');
+  const ms = Object.keys(state.wealthSnaps).sort();
+  if (ms.length < 2) { sec.style.display='none'; return; }
+  sec.style.display='';
+  const tots = ms.map(m=>state.wealthSnaps[m].total);
+  const diffs = []; for (let i=1;i<ms.length;i++) diffs.push({ m:ms[i], d:tots[i]-tots[i-1], p: tots[i-1]>0 ? (tots[i]-tots[i-1])/tots[i-1]*100 : null });
+  const first = tots[0], growth = total - first;
+  const avg = diffs.reduce((s,x)=>s+x.d,0)/diffs.length;
+  const pcts = diffs.map(x=>x.p).filter(p=>p!==null);
+  const avgPct = pcts.length ? pcts.reduce((s,p)=>s+p,0)/pcts.length : null;
+  const best = diffs.reduce((a,b)=>b.d>a.d?b:a), worst = diffs.reduce((a,b)=>b.d<a.d?b:a);
+  const pos = diffs.filter(x=>x.d>0).length;
+  const peak = Math.max(...tots, total);
+  const fromPeak = peak>0 ? (total-peak)/peak*100 : 0;
+  // Ποια πηγή έφερε την περισσότερη αύξηση από την αρχή
+  const S0 = state.wealthSnaps[ms[0]], SN = state.wealthSnaps[ms[ms.length-1]];
+  const contrib = monthCols(ms).map(c=>({c, d:colVal(SN,c)-colVal(S0,c)})).sort((a,b)=>b.d-a.d)[0];
+  const proj = total + avg*12;
+  const mn = m => new Date(m+'-01').toLocaleDateString('el-GR',{month:'short',year:'2-digit'});
+  const tile = (k,v,s,c) => `<div class="stat-tile"><div class="k">${k}</div><div class="v" style="${c?`color:${c};`:''}">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+  document.getElementById('wealthStats').innerHTML = `<div class="stat-grid">
+    ${tile('Από την αρχή', signedEur(growth), `από ${mn(ms[0])}${first>0?' · '+fmtPct(growth/first*100):''}`, dColor(growth))}
+    ${tile('Μ.Ο. / μήνα', signedEur(avg), avgPct!==null?fmtPct(avgPct)+' τον μήνα':'', dColor(avg))}
+    ${tile('Καλύτερος μήνας', signedEur(best.d), mn(best.m), dColor(best.d))}
+    ${tile('Χειρότερος μήνας', signedEur(worst.d), mn(worst.m), dColor(worst.d))}
+    ${tile('Θετικοί μήνες', `${pos}/${diffs.length}`, `${Math.round(pos/diffs.length*100)}% των μηνών`)}
+    ${tile('Από το υψηλό', fromPeak>=-0.005 ? 'Στο υψηλό 🏆' : fmtPct(fromPeak), `υψηλό ${eur(peak)}`, fromPeak>=-0.005?'#10b981':'#ef4444')}
+    ${tile('Μεγαλύτερη συνεισφορά', contrib && contrib.d>0 ? escapeHtml(shortLabel(contrib.c.label)) : '—', contrib && contrib.d>0 ? signedEur(contrib.d)+' από την αρχή' : '')}
+    ${tile('Σε 12 μήνες', eur(proj), 'αν συνεχίσει ο ίδιος ρυθμός')}
+  </div>
+  <div class="info">Η αύξηση περιλαμβάνει και τις καταθέσεις/αγορές σου, όχι μόνο την απόδοση.</div>`;
+}
+
+// Κρατά την τρέχουσα εικόνα του μήνα (οι παλιοί μήνες μένουν παγωμένοι)
+function snapshotWealth() {
+  if (!state.assets.length) return;
+  // Μην καταγράψεις αν λείπει τιμή για BTC/χρυσό που έχεις (θα έβγαζε λάθος σύνολο)
+  const missing = state.assets.some(a=>(a.kind==='btc'||a.kind==='gold') && (a.qty||0)>0 && assetPrice(a).p===0)
+    || (!fxRate() && state.assets.some(needsFx));
+  if (missing) return;
+  const items = {}, kinds = {};
+  state.assets.forEach(a=>{ items[a.id] = assetValue(a); kinds[a.id] = a.kind; });
+  // κράτα τις κατηγορίες πηγών που υπήρχαν μέσα στον μήνα (και διαγράφηκαν)
+  const old = state.wealthSnaps[monthStr()];
+  if (old && old.kinds) Object.keys(old.kinds).forEach(id=>{ if (!kinds[id] && id in items) kinds[id]=old.kinds[id]; });
+  state.wealthSnaps[monthStr()] = { total: wealthTotal(), items, kinds, at: new Date().toISOString() };
+  save();
+}
+
+function toggleSources() { state.srcOpen = !state.srcOpen; save(); applySrcOpen(); }
+function applySrcOpen() {
+  document.getElementById('srcBody').style.display = state.srcOpen ? '' : 'none';
+  document.getElementById('srcToggle').classList.toggle('open', !!state.srcOpen);
+}
+function renderWealth() {
+  if (!document.getElementById('wealthAssets')) return;
+  applySrcOpen();
+  snapshotWealth();
+  const total = wealthTotal();
+  document.getElementById('wealthTotal').textContent = eur(total);
+
+  // Μεταβολή από τον προηγούμενο μήνα
+  const months = Object.keys(state.wealthSnaps).sort();
+  const cur = monthStr();
+  const prevKey = months.filter(m=>m<cur).pop();
+  const dEl = document.getElementById('wealthDelta');
+  if (prevKey) {
+    const diff = total - state.wealthSnaps[prevKey].total;
+    dEl.innerHTML = `από ${monthName(prevKey)}: <span class="mono" style="color:${diff>=0?'#10b981':'#ef4444'};font-weight:700;">${(diff>0?'+':'')+eur(diff)}</span>`;
+  } else dEl.textContent = '';
+
+  // Σήμερα (σύνολο)
+  const dayDiff = state.assets.reduce((s,a)=>s+assetDayDiff(a),0);
+  document.getElementById('wealthDay').innerHTML =
+    `<span style="font-size:11px;color:#64748b;letter-spacing:1px;">ΣΗΜΕΡΑ </span>${dayChip(dayDiff, pctOf(dayDiff,total), true)}`;
+
+  // Τιμές
+  const pr = state.prices;
+  const when = pr.at ? new Date(pr.at).toLocaleString('el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+  const chg = p => typeof p==='number' ? ` <span class="mono" style="color:${dColor(p)};font-weight:700;">${fmtPct(p)}</span>` : '';
+  document.getElementById('wealthPrices').innerHTML =
+    `₿ ${pr.btc?eur(pr.btc):'—'}${chg(pr.btcChg)} &nbsp;·&nbsp; 🥇 ${pr.goldOz?eur(pr.goldOz)+'/oz':'—'}${chg(pr.goldChg)}<br>${pr.goldOz?'('+eur(pr.goldOz/OZ_G)+'/γρ.) · ':''}ενημέρωση: ${when}`;
+
+  renderWealthCats(total);
+  renderWealthMonths();
+  renderWealthStats(total);
+
+  // Πηγές
+  document.getElementById('srcCount').textContent = `(${state.assets.length})`;
+  document.getElementById('wealthAssets').innerHTML = sortedAssets().map(a=>{
+    const q = assetQty(a), v = assetValue(a);
+    const share = total>0 ? (v/total*100) : 0;
+    let sub = '';
+    if (a.kind==='broker') sub = `${usd(inAccount())} · αυτόματα από Dashboard`;
+    else if (a.kind==='manual') sub = a.cur==='usd' ? `${usd(a.qty||0)} · χειροκίνητο σε $` : 'χειροκίνητο ποσό';
+    else {
+      const ap = assetPrice(a);
+      const srcTxt = ap.src==='live' ? '<span class="src-live">live</span>' : ap.src==='manual' ? '<span class="src-manual">χειροκίνητη τιμή</span>' : '<span class="src-none">χωρίς τιμή</span>';
+      sub = `${fmtQty(a,q)} · ${srcTxt}`;
+    }
+    let goalHtml = '';
+    if (a.goal > 0) {
+      const pct = Math.max(0, Math.min(q/a.goal*100, 100));
+      const done = q >= a.goal;
+      const left = Math.max(0, a.goal - q);
+      goalHtml = `<div class="asset-goal">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:5px;">
+          <span>🎯 Στόχος ${fmtQty(a,a.goal)}</span>
+          ${done ? '<span class="goal-done-badge">✓ ΟΛΟΚΛΗΡΩΘΗΚΕ</span>' : `<span class="mono" style="color:${a.color};font-weight:700;">${pct.toFixed(1)}%</span>`}
+        </div>
+        <div class="goal-bar-bg"><div class="goal-bar" style="width:${pct}%;background:${done?'#10b981':a.color};"></div></div>
+        <div class="goal-nums"><span>${fmtQty(a,q)}</span><span>${done?'':'λείπουν '+fmtQty(a,left)}</span></div>
+      </div>`;
+    }
+    return `<div class="asset-card" onclick="openEditAsset('${a.id}')">
+      <div class="asset-head">
+        <span class="asset-emoji">${a.emoji}</span>
+        <div style="flex:1;min-width:0;">
+          <div class="asset-name">${escapeHtml(a.label)}</div>
+          <div class="asset-sub">${sub}</div>
+        </div>
+        <div class="asset-val">
+          <div class="mono" style="font-size:16px;font-weight:700;color:${v>=0?'#f1f5f9':'#ef4444'};">${eur(v)}</div>
+          <div style="font-size:11px;color:#64748b;">${share.toFixed(1)}% του συνόλου</div>
+          ${(()=>{ if (a.kind==='manual') return '';
+            const dd = assetDayDiff(a), p = a.kind==='broker' ? pctOf(dd,v) : assetDayPct(a);
+            if (a.kind!=='broker' && p===null) return '';
+            return `<div style="margin-top:4px;">${dayChip(dd, p, a.kind==='broker' || Math.abs(dd)>=0.005)}</div>`; })()}
+        </div>
+      </div>
+      ${goalHtml}
+    </div>`;
+  }).join('');
+}
+
+// Modal πηγής
+let editingAssetId = null, assetKind = 'btc', goldUnit = 'g', assetCur = 'eur';
+function selectAssetKind(k) { assetKind = k; updateAssetForm(); }
+function selectAssetCur(c) { assetCur = c; updateAssetForm(); }
+function selectGoldUnit(u) {
+  if (u !== goldUnit && editingAssetId) {
+    // μετατροπή των τιμών στη νέα μονάδα
+    const f = u==='oz' ? 1/OZ_G : OZ_G;
+    ['assetQty','assetGoal'].forEach(id=>{
+      const el = document.getElementById(id), v = parseFloat(el.value);
+      if (!isNaN(v)) el.value = +(v*f).toFixed(4);
+    });
+    const pe = document.getElementById('assetPrice'), pv = parseFloat(pe.value);
+    if (!isNaN(pv)) pe.value = +(pv/f).toFixed(2);
+  }
+  goldUnit = u; updateAssetForm();
+}
+function updateAssetForm() {
+  ['btc','gold','manual'].forEach(k=>document.getElementById('kind-'+k).classList.toggle('sel', k===assetKind));
+  ['g','oz'].forEach(u=>document.getElementById('unit-'+u).classList.toggle('sel', u===goldUnit));
+  ['eur','usd'].forEach(c=>document.getElementById('cur-'+c).classList.toggle('sel', c===assetCur));
+  document.getElementById('curWrap').style.display = assetKind==='manual' ? '' : 'none';
+  const tmp = { kind: assetKind, unit: goldUnit, cur: assetCur };
+  const unit = unitLabel(tmp);
+  document.getElementById('goldUnitWrap').style.display = assetKind==='gold' ? '' : 'none';
+  document.getElementById('assetQtyWrap').style.display = assetKind==='broker' ? 'none' : '';
+  document.getElementById('assetPriceWrap').style.display = (assetKind==='btc'||assetKind==='gold') ? '' : 'none';
+  document.getElementById('assetQtyLabel').textContent = assetKind==='manual' ? `Ποσό (${unit})` : `Ποσότητα (${unit})`;
+  document.getElementById('assetPriceLabel').textContent = `Χειροκίνητη τιμή € ανά ${unit} (μόνο αν δεν πιάνει live)`;
+  document.getElementById('assetGoalLabel').textContent = `Στόχος (${unit}) — προαιρετικά`;
+  document.getElementById('assetName').placeholder = {btc:'Bitcoin', gold:'Χρυσός', manual:'π.χ. Μετρητά, Τράπεζα', broker:'Χρηματιστήριο'}[assetKind];
+}
+function openAddAsset() {
+  editingAssetId = null; assetKind = 'btc'; goldUnit = 'g'; assetCur = 'eur';
+  document.getElementById('assetModalTitle').textContent = '➕ Νέα πηγή';
+  document.getElementById('assetKindWrap').style.display = '';
+  ['assetName','assetQty','assetPrice','assetGoal'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('assetDeleteBtn').style.display = 'none';
+  updateAssetForm(); openModal('assetModal');
+}
+function openEditAsset(id) {
+  const a = state.assets.find(x=>x.id===id);
+  if (!a) return;
+  editingAssetId = id; assetKind = a.kind; goldUnit = a.unit || 'g'; assetCur = a.cur || 'eur';
+  document.getElementById('assetModalTitle').textContent = `${a.emoji} ${a.label}`;
+  document.getElementById('assetKindWrap').style.display = 'none';
+  document.getElementById('assetName').value = a.label;
+  document.getElementById('assetQty').value = a.qty || '';
+  document.getElementById('assetPrice').value = a.manualPrice || '';
+  document.getElementById('assetGoal').value = a.goal || '';
+  document.getElementById('assetDeleteBtn').style.display = a.kind==='broker' ? 'none' : '';
+  updateAssetForm(); openModal('assetModal');
+}
+function saveAsset() {
+  const num = id => { const v = parseFloat(String(document.getElementById(id).value).replace(',','.')); return isNaN(v) ? 0 : v; };
+  const defaults = { btc:['Bitcoin','₿'], gold:['Χρυσός','🥇'], manual:['Μετρητά','💶'], broker:['Χρηματιστήριο','📈'] };
+  const label = document.getElementById('assetName').value.trim() || defaults[assetKind][0];
+  const qty = num('assetQty'), price = num('assetPrice'), goal = num('assetGoal');
+  if (qty < 0 || goal < 0 || price < 0) { toast('Μόνο θετικά ποσά','#ef4444'); return; }
+  if (editingAssetId) {
+    const a = state.assets.find(x=>x.id===editingAssetId);
+    if (a) {
+      a.label = label; a.goal = goal;
+      if (a.kind!=='broker') a.qty = qty;
+      if (a.kind==='btc' || a.kind==='gold') a.manualPrice = price;
+      if (a.kind==='gold') a.unit = goldUnit;
+      if (a.kind==='manual') a.cur = assetCur;
+    }
+  } else {
+    const used = state.assets.map(a=>a.color);
+    const color = COLORS.find(c=>!used.includes(c)) || COLORS[state.assets.length % COLORS.length];
+    state.assets.push({ id:'w'+Date.now(), kind:assetKind, label, emoji:defaults[assetKind][1],
+      qty, goal, manualPrice:price, unit: assetKind==='gold' ? goldUnit : undefined, cur: assetKind==='manual' ? assetCur : undefined, color });
+    if (assetKind==='manual' && assetCur==='usd') fetchFx(false);
+    if (assetKind==='btc' || assetKind==='gold') fetchPrices(false);
+  }
+  save(); closeModals(); renderWealth();
+  toast('✅ Αποθηκεύτηκε');
+}
+function deleteAsset() {
+  if (!editingAssetId) return;
+  if (!confirm('Διαγραφή πηγής; (οι παλιοί μήνες μένουν όπως είναι)')) return;
+  state.assets = state.assets.filter(a=>a.id!==editingAssetId);
+  save(); closeModals(); renderWealth();
+  toast('Πηγή διαγράφηκε','#ef4444');
+}
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  // 1) Φόρτωσε & δείξε τα δεδομένα ΑΜΕΣΩΣ (localStorage, ακαριαίο)
+  load();
+  document.getElementById('inputDate').value=todayStr();
+  document.getElementById('monthPicker').value=monthStr();
+  renderAll();
+  fetchPrices(false);
+  // 2) Άνοιξε το IndexedDB παράλληλα — μόλις είναι έτοιμο, φόρτωσε τα thumbnails
+  openImgDB()
+    .then(()=>{ renderLog(); renderGallery(); })
+    .catch(e=>console.warn('IndexedDB error', e));
+});
+</script>
+</body>
+</html>
